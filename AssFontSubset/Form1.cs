@@ -97,28 +97,25 @@ namespace AssFontSubset
                 if (Path.GetExtension(file) == ".txt") {
                     continue;
                 }
-                PrivateFontCollection collection = new PrivateFontCollection();
-                collection.AddFontFile(file);
-                if (collection.Families.Length < 1) {
-                    throw new Exception("字体目录存在多余物或无法读取字体名称。文件名：" + file);
-                }
 
                 int index = -1;
                 string fontName = string.Empty;
-                if (collection.Families.Length > 1) {
-                    var fontFamilies = System.Windows.Media.Fonts.GetFontFamilies(file).ToList();
-                    for (index = 0; index < fontFamilies.Count; index++) {
-                        var result = fontFamilies[index].FamilyNames.Values.Where(name => fonts.ContainsKey(name));
-                        if (result.Count() < 1) {
-                            continue;
-                        }
-                        fontName = result.First();
-                        break;
+                var fontFamilies = System.Windows.Media.Fonts.GetFontFamilies(file).ToList();
+                for (index = 0; index < fontFamilies.Count; index++) {
+                    var result = fontFamilies[index].FamilyNames.Values.Where(name => fonts.ContainsKey(name));
+                    if (result.Count() < 1) {
+                        continue;
                     }
-                } else if (collection.Families.Length == 1) {
-                    fontName = collection.Families[0].Name;
-                } else {
-                    continue;
+                    fontName = result.First();
+                    break;
+                }
+
+                if (string.IsNullOrEmpty(fontName)) {
+                    PrivateFontCollection collection = new PrivateFontCollection();
+                    collection.AddFontFile(file);
+                    if (collection.Families.Length > 0) {
+                        fontName = collection.Families[0].Name;
+                    }
                 }
 
                 if (!fontInfo.ContainsKey(fontName)) {
@@ -211,7 +208,7 @@ namespace AssFontSubset
                         case "3":
                         case "4":
                         case "6":
-                            record.FirstChild.Value = font.SubsetFontName;
+                            record.InnerText = font.SubsetFontName;
                             break;
                         default:
                             break;
@@ -251,7 +248,11 @@ namespace AssFontSubset
                         if (row.Substring(0, 6).ToLower() == "style:") {
                             assContent[line] = row.Replace(fontName, subsetFontInfo.SubsetFontName);
                         } else if (row.Substring(0, 9).ToLower() == "dialogue:") {
-                            assContent[line] = row.Replace($@"\fn{fontName}", $@"\fn{subsetFontInfo.SubsetFontName}");
+                            if (row.Contains($@"\fn{fontName}")) {
+                                assContent[line] = row.Replace($@"\fn{fontName}", $@"\fn{subsetFontInfo.SubsetFontName}");
+                            } else if (row.Contains($@"\fn@{fontName}")) {
+                                assContent[line] = row.Replace($@"\fn@{fontName}", $@"\fn@{subsetFontInfo.SubsetFontName}");
+                            }
                         }
                     }
 

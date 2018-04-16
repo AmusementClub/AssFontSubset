@@ -96,7 +96,14 @@ namespace AssFontSubset
             }
 
             string fontName = array[fontNameIndex].Trim();
-            string styleName = array[styleNameIndex].Trim();
+            string styleName = array[styleNameIndex].Trim().ToLower();
+
+            if (fontName[0] == '@') {
+                fontName = fontName.Substring(1);
+            }
+            if (string.IsNullOrEmpty(fontName)) {
+                this.RaiseException("ASS 无法处理, Style 中字体名为空");
+            }
 
             Font font = new Font {
                 FontName = fontName,
@@ -127,11 +134,16 @@ namespace AssFontSubset
                 this.RaiseException("ASS 无法处理");
             }
 
-            if (!this.Fonts.ContainsKey(array[styleIndex])) {
-                this.RaiseException($"ASS 无法处理, Style {array[styleIndex]} 不存在");
+            string styleName = array[styleIndex].ToLower();
+
+            if (!this.Fonts.ContainsKey(styleName)) {
+                if (!this.Fonts.ContainsKey("default")) {
+                    this.RaiseException($"ASS 无法处理, Style {array[styleIndex]} 不存在，Default Style 也不存在");
+                }
+                styleName = "default";
             }
 
-            Font font = this.Fonts[array[styleIndex]];
+            Font font = this.Fonts[styleName];
             string text = string.Join("", array.Skip(textIndex));
 
             string parsedText = this.ParseText(text);
@@ -238,6 +250,9 @@ namespace AssFontSubset
 
         public void AddCustomFontText(string currentFontName, string textByFont)
         {
+            if (!string.IsNullOrEmpty(currentFontName) && currentFontName[0] == '@') {
+                currentFontName = currentFontName.Substring(1);
+            }
             if (!string.IsNullOrEmpty(currentFontName) && !string.IsNullOrEmpty(textByFont)) {
                 if (!this.CustomFontText.ContainsKey(currentFontName)) {
                     this.CustomFontText[currentFontName] = new List<CustomFontTextInfo>();
