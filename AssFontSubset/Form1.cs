@@ -235,7 +235,7 @@ namespace AssFontSubset
                     }
                 }
 
-                int index = assContent.FindIndex(row => row.Length >= 13 && row.Substring(0, 13).ToLower() == "[script info]");
+                List<string> subsetComments = new List<string>();
 
                 foreach (var kv in fonts) {
                     string fontName = kv.Key;
@@ -255,11 +255,14 @@ namespace AssFontSubset
                         }
                     }
 
-                    string replaceComment = $"; Font Subset: {subsetFontInfo.SubsetFontName} - {fontName}";
-                    if (!assContent.Contains(replaceComment)) {
-                        assContent.Insert(++index, replaceComment);
+                    string subsetComment = $"; Font Subset: {subsetFontInfo.SubsetFontName} - {fontName}";
+                    if (!subsetComments.Contains(subsetComment)) {
+                        subsetComments.Add(subsetComment);
                     }
                 }
+
+                int index = assContent.FindIndex(row => row.Length >= 13 && row.Substring(0, 13).ToLower() == "[script info]");
+                assContent.Insert(index + 1, String.Join("\r\n", subsetComments));
 
 
                 string newAssContent = string.Join("\r\n", assContent);
