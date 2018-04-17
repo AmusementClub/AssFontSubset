@@ -164,7 +164,7 @@ namespace AssFontSubset
                 this.ParseTextWithCustomFont(text);
             }
 
-            text = Regex.Replace(text, @"\{\\[nNbiusfcakqrtmpop].*?\}", "", RegexOptions.Compiled);
+            text = Regex.Replace(text, @"\{\\[nNbiusfcakqrtmpo1234].*?\}", "", RegexOptions.Compiled);
 
             return text;
         }
