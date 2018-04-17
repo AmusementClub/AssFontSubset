@@ -17,9 +17,21 @@ namespace AssFontSubset
 {
     public partial class Form1 : Form
     {
-        public Form1()
+        private string[] m_AssFiles = null;
+
+        public Form1(string[] args)
         {
             InitializeComponent();
+            this.m_AssFiles = args;
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            if (this.m_AssFiles != null && this.m_AssFiles.Length > 0) {
+                this.FileDrop(this.m_AssFiles);
+                this.button1.PerformClick();
+                Application.Exit();
+            }
         }
 
         struct SubsetFontInfo
@@ -45,9 +57,10 @@ namespace AssFontSubset
                 MessageBox.Show("字体目录不存在");
                 return;
             }
-            if (!Directory.Exists(outputFolder)) {
-                Directory.CreateDirectory(outputFolder);
+            if (Directory.Exists(outputFolder)) {
+                Directory.Delete(outputFolder, true);
             }
+            Directory.CreateDirectory(outputFolder);
 
 
             // Dictionary<字体名, List<Tuple<ASS文件名, 行数>>>
@@ -85,9 +98,7 @@ namespace AssFontSubset
                 texts[key] = new string(texts[key].Distinct().ToArray());
             }
 
-
             var subsetFonts = new List<SubsetFontInfo>();
-
 
             // Dictionary<字体名, List<Tuple<TTC字体轨道号, 文件名>>>
             var fontInfo = new Dictionary<string, List<Tuple<int, string>>>();
@@ -302,11 +313,6 @@ namespace AssFontSubset
               .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
-        private void Form1_Load(object sender, EventArgs e)
-        {
-
-        }
-
         private void Form1_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
@@ -318,10 +324,15 @@ namespace AssFontSubset
 
         private void Form1_DragDrop(object sender, DragEventArgs e)
         {
-            string[] assFile = (string[])e.Data.GetData(DataFormats.FileDrop);
-            this.listBox1.Items.AddRange(assFile);
-            this.textBox2.Text = Path.GetDirectoryName(assFile[0]) + "\\fonts";
-            this.textBox3.Text = Path.GetDirectoryName(assFile[0]) + "\\output";
+            string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            this.FileDrop(files);
+        }
+
+        private void FileDrop(string[] files)
+        {
+            this.listBox1.Items.AddRange(files);
+            this.textBox2.Text = Path.GetDirectoryName(files[0]) + "\\fonts";
+            this.textBox3.Text = Path.GetDirectoryName(files[0]) + "\\output";
 
             this.textBox2.Select(this.textBox2.Text.Length - 1, 0);
             this.textBox3.Select(this.textBox3.Text.Length - 1, 0);
