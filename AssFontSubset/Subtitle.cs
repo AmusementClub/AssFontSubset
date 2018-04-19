@@ -190,6 +190,14 @@ namespace AssFontSubset
                 if (ch == '}' && overrideBegin) {
                     overrideBegin = false;
                     overrideEnd = true;
+
+                    if (!fontDetected) {
+                        overrideFontBegin = false;
+                        overrideFontEnd = true;
+                        i += 1;
+                        continue;
+                    }
+
                     continue;
                 }
 
