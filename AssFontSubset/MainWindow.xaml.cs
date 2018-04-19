@@ -75,9 +75,9 @@ namespace AssFontSubset
                 this.FileDrop(this.m_AssFiles);
                 this.Start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             } else {
-                Task.Run(() => {
-                    using (var client = new WebClient()) {
-                        try {
+                try {
+                    Task.Run(() => {
+                        using (var client = new WebClient()) {
                             byte[] buf = client.DownloadData("https://raw.githubusercontent.com/youlun/AssFontSubset/master/AssFontSubset/Properties/AssemblyInfo.cs");
                             string data = Encoding.UTF8.GetString(buf);
                             var match = Regex.Match(data, @"\[assembly: AssemblyVersion\(""([0-9\.]*?)""\)\]", RegexOptions.ECMAScript | RegexOptions.Compiled);
@@ -88,9 +88,9 @@ namespace AssFontSubset
                                     MessageBox.Show("发现新版本，请去 GitHub 主页下载", "新版", MessageBoxButton.OK, MessageBoxImage.Information);
                                 }
                             }
-                        } catch { }
-                    }
-                });
+                        }
+                    });
+                } catch { }
             }
         }
 
@@ -476,9 +476,14 @@ namespace AssFontSubset
                 string lowerCase = output.ToLower();
                 if (lowerCase.Contains("traceback (most recent call last)")) {
                     success = false;
+                    try {
+                        p.Kill();
+                    } catch { }
                 } else if (lowerCase.Contains("hit any key to exit")) {
                     success = false;
-                    p.Kill();
+                    try {
+                        p.Kill();
+                    } catch { }
                 }
                 this.m_ProcessList.Where(proc => proc.TaskId == taskId).First().Output = output;
             };
