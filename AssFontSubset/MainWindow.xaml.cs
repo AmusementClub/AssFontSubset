@@ -1,25 +1,38 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Drawing;
+using System.Drawing.Text;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.Drawing.Text;
-using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
 using System.Xml;
-using System.Collections.Specialized;
+using Path = System.IO.Path;
 
 namespace AssFontSubset
 {
-    public partial class Form1 : Form
+    /// <summary>
+    /// MainWindow.xaml 的交互逻辑
+    /// </summary>
+    public partial class MainWindow : Window
     {
         private string[] m_AssFiles = null;
         private Random m_Random = new Random();
+
+        private ObservableCollection<ProcessInfo> m_ProcessList = new ObservableCollection<ProcessInfo>();
+        private object m_ProcessListLock = new object();
+        public ObservableCollection<ProcessInfo> TaskList { get { return m_ProcessList; } set { m_ProcessList = value; } }
 
         private struct SubsetFontInfo
         {
@@ -43,24 +56,35 @@ namespace AssFontSubset
             public string FileName;
         }
 
-        public Form1(string[] args)
+        public MainWindow()
         {
+            BindingOperations.EnableCollectionSynchronization(TaskList, m_ProcessListLock);
+            this.DataContext = this;
+
+
             InitializeComponent();
-            this.textBox2.AutoSize = false;
-            this.textBox3.AutoSize = false;
-            this.m_AssFiles = args;
+            this.ProcessList.ItemsSource = TaskList;
+
+            this.m_AssFiles = Environment.GetCommandLineArgs().Skip(1).ToArray();
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             if (this.m_AssFiles != null && this.m_AssFiles.Length > 0) {
                 this.FileDrop(this.m_AssFiles);
-                this.button1.PerformClick();
+                this.Start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             }
         }
 
+        private void Clear_Click(object sender, RoutedEventArgs e)
+        {
+            this.AssFileList.ItemsSource = null;
+            this.FontFolder.Text = "";
+            this.OutputFolder.Text = "";
+        }
+
         private void ParseAssfiles(string[] assFiles, ref Dictionary<string, List<AssFontInfo>> fontsInAss,
-            ref Dictionary<string, string> textsInAss)
+    ref Dictionary<string, string> textsInAss)
         {
             foreach (string assFile in assFiles) {
                 AssParser parser = new AssParser();
@@ -151,9 +175,9 @@ namespace AssFontSubset
                 text += "\r\n";
                 text += "将从重复字体文件中随机选取字体，是否继续？";
 
-                var result = MessageBox.Show(text, "找到重复字体文件", MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
-                return result == DialogResult.Yes;
+                var result = MessageBox.Show(text, "找到重复字体文件", MessageBoxButton.YesNo,
+                    MessageBoxImage.Question,  MessageBoxResult.No);
+                return result == MessageBoxResult.Yes;
             }
 
             return true;
@@ -170,7 +194,7 @@ namespace AssFontSubset
             }
             if (notExists.Count > 0) {
                 MessageBox.Show($"以下字体未找到，无法继续：\r\n{string.Join("\r\n", notExists)}",
-                    "缺少字体", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    "缺少字体", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             return true;
@@ -243,8 +267,8 @@ namespace AssFontSubset
 
                 if (!File.Exists(ttxFile)) {
                     MessageBox.Show($"字体生成 ttx 文件失败，请尝试使用 FontForge 重新生成字体。\r\n" +
-                        $"字体名：{font.FontNameInAss}\r\n文件名：{font.OriginalFontFile}\r\n", 
-                        "生成ttx文件失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        $"字体名：{font.FontNameInAss}\r\n文件名：{font.OriginalFontFile}\r\n",
+                        "生成ttx文件失败", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -275,7 +299,7 @@ namespace AssFontSubset
                 if (!replaced) {
                     MessageBox.Show($"字体名称替换失败，请尝试使用 FontForge 重新生成字体。\r\n" +
                         $"字体名：{font.FontNameInAss}\r\n文件名：{font.OriginalFontFile}\r\n",
-                        "字体名称替换失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        "字体名称替换失败", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
             });
@@ -340,13 +364,13 @@ namespace AssFontSubset
             }
         }
 
-        private async void button1_Click(object sender, EventArgs e)
+        private async void Start_Click(object sender, RoutedEventArgs e)
         {
-            this.listBox1.Focus();
+            this.AssFileList.Focus();
 
-            string[] assFiles = this.listBox1.Items.Cast<string>().ToArray();
-            string fontFolder = this.textBox2.Text;
-            string outputFolder = this.textBox3.Text;
+            string[] assFiles = this.AssFileList.Items.Cast<string>().ToArray();
+            string fontFolder = this.FontFolder.Text;
+            string outputFolder = this.OutputFolder.Text;
 
             if (assFiles.Length == 0) {
                 MessageBox.Show("没有设置字幕文件");
@@ -366,45 +390,46 @@ namespace AssFontSubset
             var subsetFonts = new List<SubsetFontInfo>();
             var fontFiles = new Dictionary<string, FontFileInfo>();
 
-            this.progressBar1.Style = ProgressBarStyle.Marquee;
-            this.Enabled = false;
+            this.Progressing.IsIndeterminate = true;
+            this.m_SubsetPage.IsEnabled = false;
+            this.m_ProcessListTab.IsSelected = true;
             await Task.Run(() => {
-                this.Invoke((MethodInvoker)(() => this.Text = "解析字幕文本"));
+                this.Dispatcher.Invoke((() => this.Title = "解析字幕文本"));
                 this.ParseAssfiles(assFiles, ref fontsInAss, ref textsInAss);
 
-                this.Invoke((MethodInvoker)(() => this.Text = "读取字体文件"));
+                this.Dispatcher.Invoke((() => this.Title = "读取字体文件"));
                 if (!this.FindFontFiles(fontFolder, fontsInAss, ref fontFiles)) {
                     return;
                 }
 
-                this.Invoke((MethodInvoker)(() => this.Text = "检查字体文件"));
+                this.Dispatcher.Invoke((() => this.Title = "检查字体文件"));
                 if (!this.DetectNotExistsFont(fontsInAss, fontFiles)) {
                     return;
                 }
 
-                this.Invoke((MethodInvoker)(() => this.Text = "创建字体子集"));
+                this.Dispatcher.Invoke((() => this.Title = "创建字体子集"));
                 this.CreateFontSubset(fontFolder, outputFolder, textsInAss, fontFiles, ref subsetFonts);
 
-                this.Invoke((MethodInvoker)(() => this.Text = "字体拆包"));
+                this.Dispatcher.Invoke((() => this.Title = "字体拆包"));
                 this.DumpFont(subsetFonts);
 
-                this.Invoke((MethodInvoker)(() => this.Text = "修改字体名称"));
+                this.Dispatcher.Invoke((() => this.Title = "修改字体名称"));
                 this.ChangeXmlFontName(subsetFonts);
 
-                this.Invoke((MethodInvoker)(() => this.Text = "字体组装"));
+                this.Dispatcher.Invoke((() => this.Title = "字体组装"));
                 this.CompileFont(outputFolder);
 
-                this.Invoke((MethodInvoker)(() => this.Text = "重命名字幕字体"));
+                this.Dispatcher.Invoke((() => this.Title = "重命名字幕字体"));
                 this.ReplaceFontNameInAss(assFiles, outputFolder, fontsInAss, subsetFonts);
             });
-
-            this.Text = "完成";
+            this.Title = "完成";
             GC.Collect();
-            this.Enabled = true;
-            this.progressBar1.Style = ProgressBarStyle.Continuous;
+            this.m_SubsetPage.IsEnabled = true;
+            this.Progressing.IsIndeterminate = false;
+            this.m_SubsetTab.IsSelected = true;
 
-            if (this.m_AssFiles != null) {
-                Application.Exit();
+            if (this.m_AssFiles != null && this.m_AssFiles.Length > 0) {
+                Application.Current.Shutdown();
             }
         }
 
@@ -426,6 +451,8 @@ namespace AssFontSubset
                 EnableRaisingEvents = true
             };
 
+            // int processInfoIndex = 0;
+
             DataReceivedEventHandler dataReceived = (object sender, DataReceivedEventArgs e) => {
                 output += e.Data + "\r\n";
                 string lowerCase = output.ToLower();
@@ -435,20 +462,30 @@ namespace AssFontSubset
                     success = false;
                     p.Kill();
                 }
+                // (this.m_ProcessInfoBindingSource[processInfoIndex] as ProcessInfo).Output = output;
             };
 
             p.OutputDataReceived += dataReceived;
             p.ErrorDataReceived += dataReceived;
+
+            var taskId = Guid.NewGuid();
+            lock (this.m_ProcessList) {
+                this.m_ProcessList.Add(new ProcessInfo { TaskId = taskId, Argument = $"{exe} {p.StartInfo.Arguments}", Output = "" });
+            }
 
             p.Start();
             p.BeginOutputReadLine();
             p.BeginErrorReadLine();
             p.WaitForExit();
 
+            lock (this.m_ProcessList) {
+                this.m_ProcessList.Remove(this.m_ProcessList.Where(proc => proc.TaskId == taskId).First());
+            }
+
             if (!success) {
                 MessageBox.Show($"调用 {exe} 时发生错误，请尝试使用 FontForge 重新生成字体。" +
                     $"参数列表：\r\n{string.Join("\r\n", args.Select(arg => arg.Key + arg.Value))}\r\n\r\n{output}",
-                    "调用外部程序时发生错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    "调用外部程序时发生错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -458,37 +495,49 @@ namespace AssFontSubset
             return new string(Enumerable.Repeat(chars, length).Select(s => s[this.m_Random.Next(s.Length)]).ToArray());
         }
 
-        private void Form1_DragEnter(object sender, DragEventArgs e)
+        private void FileDrop(string[] files)
+        {
+            if (files == null || files.Length == 0) {
+                return;
+            }
+            var validFiles = new List<string>();
+            validFiles.AddRange(files.Where(f => Path.GetExtension(f) == ".ass"));
+            if (validFiles.Count == 0) {
+                return;
+            }
+
+            this.AssFileList.ItemsSource = validFiles;
+            this.FontFolder.Text = Path.GetDirectoryName(validFiles[0]) + "\\fonts";
+            this.OutputFolder.Text = Path.GetDirectoryName(validFiles[0]) + "\\output";
+
+            this.FontFolder.Select(this.FontFolder.Text.Length - 1, 0);
+            this.OutputFolder.Select(this.OutputFolder.Text.Length - 1, 0);
+        }
+
+        private void Window_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
-                e.Effect = DragDropEffects.Copy;
+                e.Effects = DragDropEffects.Copy;
+                e.Handled = true;
             } else {
-                e.Effect = DragDropEffects.None;
+                e.Effects = DragDropEffects.None;
             }
         }
 
-        private void Form1_DragDrop(object sender, DragEventArgs e)
+        private void Window_Drop(object sender, DragEventArgs e)
         {
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
             this.FileDrop(files);
         }
 
-        private void FileDrop(string[] files)
+        private void TextBox_PreviewDragOver(object sender, DragEventArgs e)
         {
-            this.listBox1.Items.AddRange(files);
-            this.textBox2.Text = Path.GetDirectoryName(files[0]) + "\\fonts";
-            this.textBox3.Text = Path.GetDirectoryName(files[0]) + "\\output";
-
-            this.textBox2.Select(this.textBox2.Text.Length - 1, 0);
-            this.textBox3.Select(this.textBox3.Text.Length - 1, 0);
-        }
-
-        private void button2_Click(object sender, EventArgs e)
-        {
-            this.listBox1.Items.Clear();
-            this.textBox2.Text = "";
-            this.textBox3.Text = "";
+            if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
+                e.Effects = DragDropEffects.Move;
+                e.Handled = true;
+            } else {
+                e.Effects = DragDropEffects.None;
+            }
         }
     }
-
 }

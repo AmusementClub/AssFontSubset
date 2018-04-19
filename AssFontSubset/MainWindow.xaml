@@ -1,0 +1,53 @@
+﻿<Window x:Class="AssFontSubset.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AssFontSubset"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800" FontSize="16"
+        Loaded="Window_Loaded"
+        AllowDrop="True" DragDrop.DragEnter="Window_DragEnter" DragDrop.Drop="Window_Drop">
+    <Grid>
+        <DockPanel LastChildFill="True">
+            <TabControl x:Name="tabControl">
+                <TabItem Header="子集化" x:Name="m_SubsetTab" >
+                    <Grid Margin="10" x:Name="m_SubsetPage" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="34*" />
+                            <RowDefinition Height="12*" />
+                            <RowDefinition Height="12*" />
+                            <RowDefinition Height="34*" />
+                            <RowDefinition Height="8*" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="15*" />
+                            <ColumnDefinition Width="75*" />
+                            <ColumnDefinition Width="10*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" Text="字幕文件" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" Text="字体目录" />
+                        <TextBlock Grid.Row="2" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" Text="输出目录" />
+
+                        <Button x:Name="Clear" Grid.Row="0" Grid.Column="3" Content="清&#xa;&#xa;空" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"  Click="Clear_Click" FontSize="18" />
+
+                        <ListBox x:Name="AssFileList" Grid.Row="0" Grid.Column="1" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                        <TextBox x:Name="FontFolder" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Center" AllowDrop="True" DragDrop.Drop="Window_Drop" DragDrop.DragEnter="Window_DragEnter" DragDrop.PreviewDragOver="TextBox_PreviewDragOver" />
+                        <TextBox x:Name="OutputFolder" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Center" AllowDrop="True" DragDrop.Drop="Window_Drop" DragDrop.DragEnter="Window_DragEnter" />
+
+                        <Button x:Name="Start" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Content="开　始" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="Start_Click" FontSize="40" />
+
+                        <ProgressBar x:Name="Progressing" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="5,0,5,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Minimum="0" Maximum="10" />
+                    </Grid>
+                </TabItem>
+                <TabItem Header="进程列表" x:Name="m_ProcessListTab">
+                    <Grid Margin="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                        <ListBox x:Name="ProcessList" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto"  />
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </DockPanel>
+
+    </Grid>
+</Window>
