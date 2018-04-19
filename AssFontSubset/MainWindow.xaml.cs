@@ -61,9 +61,7 @@ namespace AssFontSubset
             BindingOperations.EnableCollectionSynchronization(TaskList, m_ProcessListLock);
             this.DataContext = this;
 
-
             InitializeComponent();
-            this.ProcessList.ItemsSource = TaskList;
 
             this.m_AssFiles = Environment.GetCommandLineArgs().Skip(1).ToArray();
         }
@@ -451,7 +449,7 @@ namespace AssFontSubset
                 EnableRaisingEvents = true
             };
 
-            // int processInfoIndex = 0;
+            var taskId = Guid.NewGuid();
 
             DataReceivedEventHandler dataReceived = (object sender, DataReceivedEventArgs e) => {
                 output += e.Data + "\r\n";
@@ -462,13 +460,12 @@ namespace AssFontSubset
                     success = false;
                     p.Kill();
                 }
-                // (this.m_ProcessInfoBindingSource[processInfoIndex] as ProcessInfo).Output = output;
+                this.m_ProcessList.Where(proc => proc.TaskId == taskId).First().Output = output;
             };
 
             p.OutputDataReceived += dataReceived;
             p.ErrorDataReceived += dataReceived;
 
-            var taskId = Guid.NewGuid();
             lock (this.m_ProcessList) {
                 this.m_ProcessList.Add(new ProcessInfo { TaskId = taskId, Argument = $"{exe} {p.StartInfo.Arguments}", Output = "" });
             }
@@ -537,6 +534,16 @@ namespace AssFontSubset
                 e.Handled = true;
             } else {
                 e.Effects = DragDropEffects.None;
+            }
+        }
+
+        private void ProcessList_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount >= 2) {
+                var info = (this.ProcessList.SelectedItem as ProcessInfo);
+                if (info != null) {
+                    MessageBox.Show(info.Output, info.Argument, MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
         }
     }

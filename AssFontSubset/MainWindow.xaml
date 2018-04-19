@@ -43,7 +43,13 @@
                 </TabItem>
                 <TabItem Header="进程列表" x:Name="m_ProcessListTab">
                     <Grid Margin="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                        <ListBox x:Name="ProcessList" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto"  />
+                        <ListBox x:Name="ProcessList" ItemsSource="{Binding TaskList}" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Argument}"  MouseDown="ProcessList_MouseDown"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </Grid>
                 </TabItem>
             </TabControl>
