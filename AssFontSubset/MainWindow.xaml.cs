@@ -151,7 +151,8 @@ namespace AssFontSubset
 
                 int index = -1;
                 string fontName = string.Empty;
-                var fontFamilies = System.Windows.Media.Fonts.GetFontFamilies(file).ToList();
+
+                var fontFamilies = Fonts.GetFontFamilies(file).ToList();
                 for (index = 0; index < fontFamilies.Count; index++) {
                     var result = fontFamilies[index].FamilyNames.Values.Where(name => fontsInAss.ContainsKey(name));
                     if (result.Count() < 1) {
@@ -167,6 +168,15 @@ namespace AssFontSubset
                     if (collection.Families.Length > 0) {
                         fontName = collection.Families[0].Name;
                     }
+                }
+
+                if (string.IsNullOrEmpty(fontName)) {
+                    var typeface = new GlyphTypeface(new Uri("file://" + file));
+                    var result = typeface.Win32FamilyNames.Values.Where(name => fontsInAss.ContainsKey(name));
+                    if (result.Count() < 1) {
+                        continue;
+                    }
+                    fontName = result.First();
                 }
 
                 if (string.IsNullOrEmpty(fontName)) {
