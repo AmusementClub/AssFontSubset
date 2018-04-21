@@ -159,12 +159,13 @@ namespace AssFontSubset
         {
             text = text.Replace(@"\n", "");
             text = text.Replace(@"\N", "");
+            text = text.Replace(@"\h", "\u3000");
 
             if (text.Contains(@"\fn")) {
                 this.ParseTextWithCustomFont(text);
             }
 
-            text = Regex.Replace(text, @"\{\\[nNbiusfcakqrtmpo1234].*?\}", "", RegexOptions.Compiled);
+            text = Regex.Replace(text, @"\{\\[nNbiusfcakqrtmpo1234h].*?\}", "", RegexOptions.Compiled);
 
             return text;
         }

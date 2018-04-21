@@ -75,8 +75,8 @@ namespace AssFontSubset
                 this.FileDrop(this.m_AssFiles);
                 this.Start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             } else {
-                try {
                     Task.Run(() => {
+                    try {
                         using (var client = new WebClient()) {
                             byte[] buf = client.DownloadData("https://raw.githubusercontent.com/youlun/AssFontSubset/master/AssFontSubset/Properties/AssemblyInfo.cs");
                             string data = Encoding.UTF8.GetString(buf);
@@ -88,9 +88,9 @@ namespace AssFontSubset
                                     MessageBox.Show("发现新版本，请去 GitHub 主页下载", "新版", MessageBoxButton.OK, MessageBoxImage.Information);
                                 }
                             }
-                        }
+                            }
+                        } catch { }
                     });
-                } catch { }
             }
         }
 
@@ -290,9 +290,12 @@ namespace AssFontSubset
                     return;
                 }
 
+                var ttxContent = File.ReadAllText(ttxFile, new UTF8Encoding(false));
+                ttxContent = Regex.Replace(ttxContent, @"<map code=""0x3000"" name=""(.*?)""/>",
+                    @"<map code=""0x3000"" name=""$1""/><map code=""0xa0"" name=""$1""/>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
                 bool replaced = false;
                 var xd = new XmlDocument();
-                xd.Load(ttxFile);
+                xd.LoadXml(ttxContent);
                 var namerecordList = xd.SelectNodes("ttFont/name/namerecord");
                 foreach (XmlNode record in namerecordList) {
                     string nameID = record.Attributes["nameID"].Value.Trim();
@@ -384,70 +387,79 @@ namespace AssFontSubset
 
         private async void Start_Click(object sender, RoutedEventArgs e)
         {
-            this.AssFileList.Focus();
+            try {
+                this.AssFileList.Focus();
 
-            string[] assFiles = this.AssFileList.Items.Cast<string>().ToArray();
-            string fontFolder = this.FontFolder.Text;
-            string outputFolder = this.OutputFolder.Text;
+                string[] assFiles = this.AssFileList.Items.Cast<string>().ToArray();
+                string fontFolder = this.FontFolder.Text;
+                string outputFolder = this.OutputFolder.Text;
 
-            if (assFiles.Length == 0) {
-                MessageBox.Show("没有设置字幕文件");
-                return;
-            }
-            if (!Directory.Exists(fontFolder)) {
-                MessageBox.Show("字体目录不存在");
-                return;
-            }
-            if (Directory.Exists(outputFolder)) {
-                Directory.Delete(outputFolder, true);
-            }
-            Directory.CreateDirectory(outputFolder);
-
-            var fontsInAss = new Dictionary<string, List<AssFontInfo>>();
-            var textsInAss = new Dictionary<string, string>();
-            var subsetFonts = new List<SubsetFontInfo>();
-            var fontFiles = new Dictionary<string, FontFileInfo>();
-
-            this.Progressing.IsIndeterminate = true;
-            this.m_SubsetPage.IsEnabled = false;
-            this.m_ProcessListTab.IsSelected = true;
-            await Task.Run(() => {
-                this.Dispatcher.Invoke((() => this.Title = "解析字幕文本"));
-                this.ParseAssfiles(assFiles, ref fontsInAss, ref textsInAss);
-
-                this.Dispatcher.Invoke((() => this.Title = "读取字体文件"));
-                if (!this.FindFontFiles(fontFolder, fontsInAss, ref fontFiles)) {
+                if (assFiles.Length == 0) {
+                    MessageBox.Show("没有设置字幕文件");
                     return;
                 }
-
-                this.Dispatcher.Invoke((() => this.Title = "检查字体文件"));
-                if (!this.DetectNotExistsFont(fontsInAss, fontFiles)) {
+                if (!Directory.Exists(fontFolder)) {
+                    MessageBox.Show("字体目录不存在");
                     return;
                 }
+                if (Directory.Exists(outputFolder)) {
+                    Directory.Delete(outputFolder, true);
+                }
+                Directory.CreateDirectory(outputFolder);
 
-                this.Dispatcher.Invoke((() => this.Title = "创建字体子集"));
-                this.CreateFontSubset(fontFolder, outputFolder, textsInAss, fontFiles, ref subsetFonts);
+                var fontsInAss = new Dictionary<string, List<AssFontInfo>>();
+                var textsInAss = new Dictionary<string, string>();
+                var subsetFonts = new List<SubsetFontInfo>();
+                var fontFiles = new Dictionary<string, FontFileInfo>();
 
-                this.Dispatcher.Invoke((() => this.Title = "字体拆包"));
-                this.DumpFont(subsetFonts);
+                this.Progressing.IsIndeterminate = true;
+                this.m_SubsetPage.IsEnabled = false;
+                this.m_ProcessListTab.IsSelected = true;
+                await Task.Run(() => {
+                    try {
+                        this.Dispatcher.Invoke((() => this.Title = "解析字幕文本"));
+                        this.ParseAssfiles(assFiles, ref fontsInAss, ref textsInAss);
 
-                this.Dispatcher.Invoke((() => this.Title = "修改字体名称"));
-                this.ChangeXmlFontName(subsetFonts);
+                        this.Dispatcher.Invoke((() => this.Title = "读取字体文件"));
+                        if (!this.FindFontFiles(fontFolder, fontsInAss, ref fontFiles)) {
+                            return;
+                        }
 
-                this.Dispatcher.Invoke((() => this.Title = "字体组装"));
-                this.CompileFont(outputFolder);
+                        this.Dispatcher.Invoke((() => this.Title = "检查字体文件"));
+                        if (!this.DetectNotExistsFont(fontsInAss, fontFiles)) {
+                            return;
+                        }
 
-                this.Dispatcher.Invoke((() => this.Title = "重命名字幕字体"));
-                this.ReplaceFontNameInAss(assFiles, outputFolder, fontsInAss, subsetFonts);
-            });
-            this.Title = "完成";
-            GC.Collect();
-            this.m_SubsetPage.IsEnabled = true;
-            this.Progressing.IsIndeterminate = false;
-            this.m_SubsetTab.IsSelected = true;
+                        this.Dispatcher.Invoke((() => this.Title = "创建字体子集"));
+                        this.CreateFontSubset(fontFolder, outputFolder, textsInAss, fontFiles, ref subsetFonts);
 
-            if (this.m_AssFiles != null && this.m_AssFiles.Length > 0) {
-                Application.Current.Shutdown();
+                        this.Dispatcher.Invoke((() => this.Title = "字体拆包"));
+                        this.DumpFont(subsetFonts);
+
+                        this.Dispatcher.Invoke((() => this.Title = "修改字体名称"));
+                        this.ChangeXmlFontName(subsetFonts);
+
+                        this.Dispatcher.Invoke((() => this.Title = "字体组装"));
+                        this.CompileFont(outputFolder);
+
+                        this.Dispatcher.Invoke((() => this.Title = "重命名字幕字体"));
+                        this.ReplaceFontNameInAss(assFiles, outputFolder, fontsInAss, subsetFonts);
+                    } catch (Exception ex) {
+                        MessageBox.Show(ex.ToString(), "发生异常", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                });
+                this.Title = "完成";
+                GC.Collect();
+                this.m_SubsetPage.IsEnabled = true;
+                this.Progressing.IsIndeterminate = false;
+                this.m_SubsetTab.IsSelected = true;
+
+                if (this.m_AssFiles != null && this.m_AssFiles.Length > 0) {
+                    Application.Current.Shutdown();
+                }
+
+            } catch (Exception ex) {
+                MessageBox.Show(ex.ToString(), "发生异常", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -485,7 +497,13 @@ namespace AssFontSubset
                         p.Kill();
                     } catch { }
                 }
-                this.m_ProcessList.Where(proc => proc.TaskId == taskId).First().Output = output;
+
+                lock (this.m_ProcessList) {
+                    var info = this.m_ProcessList.Where(proc => proc.TaskId == taskId).First();
+                    if (info != null) {
+                        info.Output = output;
+                    }
+                }
             };
 
             p.OutputDataReceived += dataReceived;
@@ -540,26 +558,16 @@ namespace AssFontSubset
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
                 e.Effects = DragDropEffects.Copy;
-                e.Handled = true;
             } else {
                 e.Effects = DragDropEffects.None;
             }
+            e.Handled = true;
         }
 
         private void Window_Drop(object sender, DragEventArgs e)
         {
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
             this.FileDrop(files);
-        }
-
-        private void TextBox_PreviewDragOver(object sender, DragEventArgs e)
-        {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop)) {
-                e.Effects = DragDropEffects.Move;
-                e.Handled = true;
-            } else {
-                e.Effects = DragDropEffects.None;
-            }
         }
 
         private void ProcessList_MouseDown(object sender, MouseButtonEventArgs e)
