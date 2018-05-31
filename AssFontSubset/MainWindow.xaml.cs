@@ -150,52 +150,60 @@ namespace AssFontSubset
                 }
 
                 int index = -1;
-                string fontName = string.Empty;
+                var fontNames = new List<string>();
 
-                var parsers = new Action[] {
+                var parsers = new Action[] { () => {
+                        var typeface = new GlyphTypeface(new Uri("file://" + file));
+                        var result = typeface.Win32FamilyNames.Values.Where(name => fontsInAss.ContainsKey(name));
+                        if (result.Count() > 0) {
+                            fontNames.AddRange(result.Distinct());
+                            return;
+                        }
+                    },
                     () => {
+                        if (Path.GetExtension(file).ToLower() == ".otf") {
+                            return;
+                        }
                         var fontFamilies = Fonts.GetFontFamilies(file).ToList();
                         for (index = 0; index < fontFamilies.Count; index++) {
                             var result = fontFamilies[index].FamilyNames.Values.Where(name => fontsInAss.ContainsKey(name));
                             if (result.Count() > 0) {
-                                fontName = result.First();
+                                fontNames.AddRange(result.Distinct());
                                 return;
                             }
                         }
                     }, () => {
+                        if (Path.GetExtension(file).ToLower() == ".otf") {
+                            return;
+                        }
                         PrivateFontCollection collection = new PrivateFontCollection();
                         collection.AddFontFile(file);
                         var result = collection.Families.Where(f => fontsInAss.ContainsKey(f.Name)).Select(f => f.Name);
                         if (result.Count() > 0) {
-                            fontName = result.First();
+                            fontNames.AddRange(result.Distinct());
                             return;
                         }
-                    }, () => {
-                        var typeface = new GlyphTypeface(new Uri("file://" + file));
-                        var result = typeface.Win32FamilyNames.Values.Where(name => fontsInAss.ContainsKey(name));
-                        if (result.Count() > 0) {
-                            fontName = result.First();
-                            return;
-                        }
-                    }
+                    },
                 };
 
-                for (int i = 0; i < parsers.Length && string.IsNullOrEmpty(fontName); i++) {
+                for (int i = 0; i < parsers.Length && fontNames.Count == 0; i++) {
                     parsers[i]();
                 }
 
-                if (string.IsNullOrEmpty(fontName)) {
+                if (fontNames.Count == 0) {
                     continue;
                 }
 
-                if (fontFileInfo.ContainsKey(fontName)) {
-                    if (!duplicateFontFiles.ContainsKey(fontName)) {
-                        duplicateFontFiles[fontName] = new List<string> { fontFileInfo[fontName].FileName };
+                foreach (var fontName in fontNames) {
+                    if (fontFileInfo.ContainsKey(fontName)) {
+                        if (!duplicateFontFiles.ContainsKey(fontName)) {
+                            duplicateFontFiles[fontName] = new List<string> { fontFileInfo[fontName].FileName };
+                        }
+                        duplicateFontFiles[fontName].Add(file);
                     }
-                    duplicateFontFiles[fontName].Add(file);
-                }
 
-                fontFileInfo[fontName] = new FontFileInfo { FontNumberInCollection = index, FileName = file };
+                    fontFileInfo[fontName] = new FontFileInfo { FontNumberInCollection = index, FileName = file };
+                }
             }
 
             if (duplicateFontFiles.Count > 0) {
@@ -257,12 +265,13 @@ namespace AssFontSubset
                     outputFile += $"{Path.GetFileName(fontFile)}";
                 }
 
+                var randomString = this.RandomString(8);
                 var subsetFontInfo = new SubsetFontInfo {
                     FontNameInAss = fontName,
                     OriginalFontFile = fontFile,
-                    SubsetFontFile = outputFile + "._tmp_",
-                    SubsetFontName = this.RandomString(8),
-                    DumpedXmlFile = outputFolder + "\\" + Path.GetFileNameWithoutExtension(outputFile) + ".ttx",
+                    SubsetFontFile = outputFile + $".{randomString}._tmp_",
+                    SubsetFontName = randomString,
+                    DumpedXmlFile = $@"{outputFolder}\{Path.GetFileNameWithoutExtension(outputFile)}.{randomString}.ttx",
                     TrackIndex = index
                 };
                 subsetFonts.Add(subsetFontInfo);
