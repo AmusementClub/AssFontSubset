@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -36,6 +37,11 @@ namespace AssFontSubset
         private ObservableCollection<ProcessInfo> m_ProcessList = new ObservableCollection<ProcessInfo>();
         private object m_ProcessListLock = new object();
         public ObservableCollection<ProcessInfo> TaskList { get { return m_ProcessList; } set { m_ProcessList = value; } }
+
+        private bool m_Continue = true;
+
+        [DllImport("gdi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern int RemoveFontResourceEx(string lpszFilename, int fl, IntPtr pdv);
 
         private struct SubsetFontInfo
         {
@@ -102,7 +108,7 @@ namespace AssFontSubset
         }
 
         private void ParseAssfiles(string[] assFiles, ref Dictionary<string, List<AssFontInfo>> fontsInAss,
-    ref Dictionary<string, string> textsInAss)
+            ref Dictionary<string, string> textsInAss)
         {
             foreach (string assFile in assFiles) {
                 AssParser parser = new AssParser();
@@ -152,11 +158,19 @@ namespace AssFontSubset
                 int index = -1;
                 var fontNames = new List<string>();
 
-                var parsers = new Action[] { () => {
-                        var typeface = new GlyphTypeface(new Uri("file://" + file));
-                        var result = typeface.Win32FamilyNames.Values.Where(name => fontsInAss.ContainsKey(name));
-                        if (result.Count() > 0) {
-                            fontNames.AddRange(result.Distinct());
+                var parsers = new Action[] {
+                    () => {
+                        if (Path.GetExtension(file).ToLower() == ".ttc") {
+                            return;
+                        }
+                        try {
+                            var typeface = new GlyphTypeface(new Uri("file://" + file));
+                            var result = typeface.Win32FamilyNames.Values.Where(name => fontsInAss.ContainsKey(name));
+                            if (result.Count() > 0) {
+                                fontNames.AddRange(result.Distinct());
+                                return;
+                            }
+                        } catch (Exception ex) {
                             return;
                         }
                     },
@@ -181,8 +195,8 @@ namespace AssFontSubset
                         var result = collection.Families.Where(f => fontsInAss.ContainsKey(f.Name)).Select(f => f.Name);
                         if (result.Count() > 0) {
                             fontNames.AddRange(result.Distinct());
-                            return;
                         }
+                        RemoveFontResourceEx(file, 16, IntPtr.Zero);
                     },
                 };
 
@@ -304,19 +318,22 @@ namespace AssFontSubset
         private void ChangeXmlFontName(List<SubsetFontInfo> subsetFonts)
         {
             Parallel.ForEach(subsetFonts, (font) => {
+                if (!this.m_Continue) {
+                    return;
+                }
+
                 var ttxFile = font.DumpedXmlFile;
                 string ttxString = string.Empty;
 
                 if (!File.Exists(ttxFile)) {
-                    MessageBox.Show($"字体生成 ttx 文件失败，请尝试使用 FontForge 重新生成字体。\r\n" +
+                    var result = MessageBox.Show($"字体生成 ttx 文件失败，请尝试使用 FontForge 重新生成字体。\r\n" +
                         $"字体名：{font.FontNameInAss}\r\n文件名：{font.OriginalFontFile}\r\n",
-                        "生成ttx文件失败", MessageBoxButton.OK, MessageBoxImage.Error);
+                        "生成ttx文件失败", MessageBoxButton.YesNo, MessageBoxImage.Error, MessageBoxResult.No);
+                    this.m_Continue = result == MessageBoxResult.Yes;
                     return;
                 }
 
                 var ttxContent = File.ReadAllText(ttxFile, new UTF8Encoding(false));
-                ttxContent = Regex.Replace(ttxContent, @"<map code=""0x3000"" name=""(.*?)""/>",
-                    @"<map code=""0x3000"" name=""$1""/><map code=""0xa0"" name=""$1""/>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
                 bool replaced = false;
                 var xd = new XmlDocument();
                 xd.LoadXml(ttxContent);
@@ -342,9 +359,10 @@ namespace AssFontSubset
                 xd.Save(ttxFile);
 
                 if (!replaced) {
-                    MessageBox.Show($"字体名称替换失败，请尝试使用 FontForge 重新生成字体。\r\n" +
+                    var result = MessageBox.Show($"字体名称替换失败，请尝试使用 FontForge 重新生成字体。\r\n" +
                         $"字体名：{font.FontNameInAss}\r\n文件名：{font.OriginalFontFile}\r\n",
-                        "字体名称替换失败", MessageBoxButton.OK, MessageBoxImage.Error);
+                        "字体名称替换失败", MessageBoxButton.YesNo, MessageBoxImage.Error, MessageBoxResult.No);
+                    this.m_Continue = result == MessageBoxResult.Yes;
                     return;
                 }
             });
@@ -489,6 +507,10 @@ namespace AssFontSubset
 
         private void StartProcess(string exe, Dictionary<string, string> args)
         {
+            if (!this.m_Continue) {
+                return;
+            }
+
             string output = "";
             bool success = true;
 
@@ -547,9 +569,11 @@ namespace AssFontSubset
             }
 
             if (!success) {
-                MessageBox.Show($"调用 {exe} 时发生错误，请尝试使用 FontForge 重新生成字体。" +
+                var result = MessageBox.Show($"调用 {exe} 时发生错误，请尝试使用 FontForge 重新生成字体。\r\n" +
+                    "是否继续？\r\n" +
                     $"参数列表：\r\n{string.Join("\r\n", args.Select(arg => arg.Key + arg.Value))}\r\n\r\n{output}",
-                    "调用外部程序时发生错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    "调用外部程序时发生错误", MessageBoxButton.YesNo, MessageBoxImage.Error, MessageBoxResult.No);
+                this.m_Continue = result == MessageBoxResult.Yes;
             }
         }
 

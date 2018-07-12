@@ -159,7 +159,7 @@ namespace AssFontSubset
         {
             text = text.Replace(@"\n", "");
             text = text.Replace(@"\N", "");
-            text = text.Replace(@"\h", "\u3000");
+            text = text.Replace(@"\h", "\u00A0");
 
             if (text.Contains(@"\fn")) {
                 this.ParseTextWithCustomFont(text);
