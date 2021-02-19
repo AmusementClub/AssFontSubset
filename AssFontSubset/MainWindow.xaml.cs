@@ -263,9 +263,10 @@ namespace AssFontSubset
             foreach (var text in textsInAss) {
                 var fontName = text.Key;
                 var characters = text.Value;
-                
-                // get around unknown bugs in subset fonts
-                characters = characters.Replace("…", "……");
+
+                // fix font fallback on ellipsis.
+                characters = Regex.Replace(characters, @"[a-zA-Z]", "", RegexOptions.Compiled);
+                characters += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
                 // remove all regular numeric characters and replace them with a full set of them.
                 var halfwidth_numerical = new Regex(@"[0-9]");
