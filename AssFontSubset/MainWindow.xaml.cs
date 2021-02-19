@@ -263,6 +263,27 @@ namespace AssFontSubset
             foreach (var text in textsInAss) {
                 var fontName = text.Key;
                 var characters = text.Value;
+                
+                // get around unknown bugs in subset fonts
+                characters = characters.Replace("…", "……");
+
+                // remove all regular numeric characters and replace them with a full set of them.
+                var halfwidth_numerical = new Regex(@"[0-9]");
+                if (halfwidth_numerical.IsMatch(characters))
+                {
+                    characters = halfwidth_numerical.Replace(characters, "");
+                    characters += "0123456789";
+                }
+
+
+                // remove all full width numeric characters and replace them with a full set of them.
+                var fullwidth_numerical = new Regex(@"１２３４５６７８９０");
+                if (fullwidth_numerical.IsMatch(characters))
+                {
+                    characters = fullwidth_numerical.Replace(characters, "");
+                    characters += "１２３４５６７８９０";
+                }
+                
 
                 var charactersFile = $@"{fontFolder}\{fontName}.txt";
                 using (StreamWriter sw = new StreamWriter(charactersFile, false, new UTF8Encoding(false))) {
