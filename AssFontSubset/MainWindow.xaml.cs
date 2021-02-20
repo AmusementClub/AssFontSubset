@@ -357,6 +357,9 @@ namespace AssFontSubset
 
                 var ttxContent = File.ReadAllText(ttxFile, new UTF8Encoding(false));
                 bool replaced = false;
+
+                var specialFont = ""; // special hack for some fonts
+
                 var xd = new XmlDocument();
                 xd.LoadXml(ttxContent);
                 var namerecordList = xd.SelectNodes("ttFont/name/namerecord");
@@ -371,6 +374,9 @@ namespace AssFontSubset
                         case "3":
                         case "4":
                         case "6":
+                            if (record.InnerText.Contains("Source Han")) {
+                                specialFont = "Source Han";
+                            }
                             record.InnerText = font.SubsetFontName;
                             replaced = true;
                             break;
@@ -378,6 +384,25 @@ namespace AssFontSubset
                             break;
                     }
                 }
+
+                // remove substitution for ellipsis for source han sans/serif font
+                if (specialFont == "Source Han") {
+
+                    // find cid for ellipsis (\u2026)
+                    XmlNode cmap = xd.SelectSingleNode(@"//map[@code='0x2026']");
+                    String ellipsisCid = cmap.Attributes["name"].Value.Trim();
+                    XmlNodeList substitutionNodes = xd.SelectNodes($"//Substitution[@in='{ellipsisCid}']");
+                    
+                    // remove substitution for lower ellipsis. 
+                    // NOTE: Vertical ellipsis is cid5xxxxx, and we need to keep it. Hopefully Adobe won't change it.
+                    foreach (XmlNode sNode in substitutionNodes) {
+                        if (Regex.IsMatch(sNode.Attributes["out"].Value, @"cid6")){
+                            sNode.ParentNode.RemoveChild(sNode);
+                        }
+                    }
+                }
+
+
                 xd.Save(ttxFile);
 
                 if (!replaced) {
