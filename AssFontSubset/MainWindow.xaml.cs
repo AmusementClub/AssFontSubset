@@ -278,7 +278,7 @@ namespace AssFontSubset
 
 
                 // remove all full width numeric characters and replace them with a full set of them.
-                var fullwidth_numerical = new Regex(@"１２３４５６７８９０");
+                var fullwidth_numerical = new Regex(@"[１２３４５６７８９０]");
                 if (fullwidth_numerical.IsMatch(characters))
                 {
                     characters = fullwidth_numerical.Replace(characters, "");
