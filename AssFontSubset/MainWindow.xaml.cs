@@ -390,14 +390,17 @@ namespace AssFontSubset
 
                     // find cid for ellipsis (\u2026)
                     XmlNode cmap = xd.SelectSingleNode(@"//map[@code='0x2026']");
-                    String ellipsisCid = cmap.Attributes["name"].Value.Trim();
-                    XmlNodeList substitutionNodes = xd.SelectNodes($"//Substitution[@in='{ellipsisCid}']");
-                    
-                    // remove substitution for lower ellipsis. 
-                    // NOTE: Vertical ellipsis is cid5xxxxx, and we need to keep it. Hopefully Adobe won't change it.
-                    foreach (XmlNode sNode in substitutionNodes) {
-                        if (Regex.IsMatch(sNode.Attributes["out"].Value, @"cid6")){
-                            sNode.ParentNode.RemoveChild(sNode);
+                    if (cmap != null) {
+                        String ellipsisCid = cmap.Attributes["name"].Value.Trim();
+                        XmlNodeList substitutionNodes = xd.SelectNodes($"//Substitution[@in='{ellipsisCid}']");
+                        // remove substitution for lower ellipsis. 
+                        // NOTE: Vertical ellipsis is cid5xxxxx, and we need to keep it. Hopefully Adobe won't change it.
+                        foreach (XmlNode sNode in substitutionNodes)
+                        {
+                            if (Regex.IsMatch(sNode.Attributes["out"].Value, @"cid6"))
+                            {
+                                sNode.ParentNode.RemoveChild(sNode);
+                            }
                         }
                     }
                 }
