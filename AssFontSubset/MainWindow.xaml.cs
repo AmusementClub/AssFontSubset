@@ -265,17 +265,8 @@ namespace AssFontSubset
                 var characters = text.Value;
 
                 // fix font fallback on ellipsis.
-                characters = Regex.Replace(characters, @"[a-zA-Z]", "", RegexOptions.Compiled);
-                characters += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
-                // remove all regular numeric characters and replace them with a full set of them.
-                var halfwidth_numerical = new Regex(@"[0-9]");
-                if (halfwidth_numerical.IsMatch(characters))
-                {
-                    characters = halfwidth_numerical.Replace(characters, "");
-                    characters += "0123456789";
-                }
-
+                characters = Regex.Replace(characters, @"[a-zA-Z0-9]", "", RegexOptions.Compiled);
+                characters += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
                 // remove all full width numeric characters and replace them with a full set of them.
                 var fullwidth_numerical = new Regex(@"[１２３４５６７８９０]");
