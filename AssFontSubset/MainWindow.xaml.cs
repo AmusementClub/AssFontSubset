@@ -453,6 +453,7 @@ namespace AssFontSubset
                 }
 
                 int index = assContent.FindIndex(row => row.Length >= 13 && row.Substring(0, 13).ToLower() == "[script info]");
+                assContent.Insert(index + 1, $"; Processed by AssFontSubset v{Assembly.GetEntryAssembly().GetName().Version}");
                 assContent.Insert(index + 1, string.Join("\r\n", subsetComments));
 
                 string newAssContent = string.Join("\r\n", assContent);
