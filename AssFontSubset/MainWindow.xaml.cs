@@ -63,6 +63,7 @@ namespace AssFontSubset
         {
             public int FontNumberInCollection;
             public string FileName;
+            public string FontName;
         }
 
         public MainWindow()
@@ -144,9 +145,9 @@ namespace AssFontSubset
         }
 
         private bool FindFontFiles(string fontFolder, Dictionary<string, List<AssFontInfo>> fontsInAss,
-            ref Dictionary<string, FontFileInfo> fontFileInfo)
+            ref List<FontFileInfo> fontFileInfo)
         {
-            var duplicateFontFiles = new Dictionary<string, List<string>>();
+            //var duplicateFontFiles = new Dictionary<string, List<string>>();
 
             var fontFiles = Directory.EnumerateFiles(fontFolder, "*.*", SearchOption.TopDirectoryOnly);
             string[] fontExtensions = { ".fon", ".otf", ".ttc", ".ttf" };
@@ -208,45 +209,30 @@ namespace AssFontSubset
                     continue;
                 }
 
+
                 foreach (var fontName in fontNames) {
-                    if (fontFileInfo.ContainsKey(fontName)) {
-                        if (!duplicateFontFiles.ContainsKey(fontName)) {
-                            duplicateFontFiles[fontName] = new List<string> { fontFileInfo[fontName].FileName };
-                        }
-                        duplicateFontFiles[fontName].Add(file);
-                    }
-
-                    fontFileInfo[fontName] = new FontFileInfo { FontNumberInCollection = index, FileName = file };
+                    fontFileInfo.Add(new FontFileInfo { FontNumberInCollection = index, FileName = file, FontName = fontName });
                 }
-            }
-
-            if (duplicateFontFiles.Count > 0) {
-                string text = "找到以下重复字体文件：\r\n";
-                foreach (var font in duplicateFontFiles) {
-                    text += $"    {font.Key}：\r\n";
-                    font.Value.Sort();
-                    font.Value.ForEach(file => text += $"        {Path.GetFileName(file)}\r\n");
-                }
-                text += "\r\n";
-                text += "将从重复字体文件中随机选取字体，是否继续？";
-
-                var result = MessageBox.Show(text, "找到重复字体文件", MessageBoxButton.YesNo,
-                    MessageBoxImage.Question,  MessageBoxResult.No);
-                return result == MessageBoxResult.Yes;
             }
 
             return true;
         }
 
         private bool DetectNotExistsFont(Dictionary<string, List<AssFontInfo>> fontsInAss,
-            Dictionary<string, FontFileInfo> fontFiles)
+            List<FontFileInfo> fontFiles)
         {
             List<string> notExists = new List<string>();
+            var fontNames = new List<string>();
+            foreach (var fontFileInfo in fontFiles) {
+                fontNames.Add(fontFileInfo.FontName);
+            }
+
             foreach (var kv in fontsInAss) {
-                if (!fontFiles.ContainsKey(kv.Key)) {
+                if (!fontNames.Contains(kv.Key)) {
                     notExists.Add(kv.Key);
                 }
             }
+
             if (notExists.Count > 0) {
                 MessageBox.Show($"以下字体未找到，无法继续：\r\n{string.Join("\r\n", notExists)}",
                     "缺少字体", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -256,13 +242,14 @@ namespace AssFontSubset
         }
 
         private void CreateFontSubset(string fontFolder, string outputFolder, Dictionary<string, string> textsInAss,
-            Dictionary<string, FontFileInfo> fontFiles, ref List<SubsetFontInfo> subsetFonts)
+            List<FontFileInfo> fontFiles, ref List<SubsetFontInfo> subsetFonts)
         {
             var processors = new List<Dictionary<string, string>>();
 
-            foreach (var text in textsInAss) {
-                var fontName = text.Key;
-                var characters = text.Value;
+            foreach (var font in fontFiles) {
+
+                var fontName = font.FontName;
+                var characters = textsInAss[fontName];
 
                 // fix font fallback on ellipsis.
                 characters = Regex.Replace(characters, @"[a-zA-Z0-9]", "", RegexOptions.Compiled);
@@ -270,20 +257,18 @@ namespace AssFontSubset
 
                 // remove all full width numeric characters and replace them with a full set of them.
                 var fullwidth_numerical = new Regex(@"[１２３４５６７８９０]");
-                if (fullwidth_numerical.IsMatch(characters))
-                {
+                if (fullwidth_numerical.IsMatch(characters)) {
                     characters = fullwidth_numerical.Replace(characters, "");
                     characters += "１２３４５６７８９０";
                 }
-                
 
                 var charactersFile = $@"{fontFolder}\{fontName}.txt";
                 using (StreamWriter sw = new StreamWriter(charactersFile, false, new UTF8Encoding(false))) {
                     sw.Write(characters);
                 }
 
-                int index = fontFiles[fontName].FontNumberInCollection;
-                string fontFile = fontFiles[fontName].FileName;
+                int index = font.FontNumberInCollection;
+                string fontFile = font.FileName;
 
                 string outputFile = $@"{outputFolder}\";
                 if (fontFile.EndsWith(".ttc")) {
@@ -493,7 +478,7 @@ namespace AssFontSubset
                 var fontsInAss = new Dictionary<string, List<AssFontInfo>>();
                 var textsInAss = new Dictionary<string, string>();
                 var subsetFonts = new List<SubsetFontInfo>();
-                var fontFiles = new Dictionary<string, FontFileInfo>();
+                var fontFiles = new List<FontFileInfo>();
 
                 this.Progressing.IsIndeterminate = true;
                 this.m_SubsetPage.IsEnabled = false;
