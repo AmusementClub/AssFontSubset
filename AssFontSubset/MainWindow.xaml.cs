@@ -412,22 +412,7 @@ namespace AssFontSubset
 
                 // remove substitution for ellipsis for source han sans/serif font
                 if (specialFont == "Source Han") {
-
-                    // find cid for ellipsis (\u2026)
-                    XmlNode cmap = xd.SelectSingleNode(@"//map[@code='0x2026']");
-                    if (cmap != null) {
-                        String ellipsisCid = cmap.Attributes["name"].Value.Trim();
-                        XmlNodeList substitutionNodes = xd.SelectNodes($"//Substitution[@in='{ellipsisCid}']");
-                        // remove substitution for lower ellipsis. 
-                        // NOTE: Vertical ellipsis is cid5xxxxx, and we need to keep it. Hopefully Adobe won't change it.
-                        foreach (XmlNode sNode in substitutionNodes)
-                        {
-                            if (Regex.IsMatch(sNode.Attributes["out"].Value, @"cid6"))
-                            {
-                                sNode.ParentNode.RemoveChild(sNode);
-                            }
-                        }
-                    }
+                    SourceHanFontEllipsis(ref xd);
                 }
 
 
@@ -441,6 +426,23 @@ namespace AssFontSubset
                     return;
                 }
             });
+        }
+
+        // Special Hack for Source Han Sans & Source Han Serif ellipsis
+        private void SourceHanFontEllipsis(ref XmlDocument xd) {
+            // find cid for ellipsis (\u2026)
+            XmlNode cmap = xd.SelectSingleNode(@"//map[@code='0x2026']");
+            if (cmap != null) {
+                String ellipsisCid = cmap.Attributes["name"].Value.Trim();
+                XmlNodeList substitutionNodes = xd.SelectNodes($"//Substitution[@in='{ellipsisCid}']");
+                // remove substitution for lower ellipsis. 
+                // NOTE: Vertical ellipsis is cid5xxxxx, and we need to keep it. Hopefully Adobe won't change it.
+                foreach (XmlNode sNode in substitutionNodes) {
+                    if (Regex.IsMatch(sNode.Attributes["out"].Value, @"cid6")) {
+                        sNode.ParentNode.RemoveChild(sNode);
+                    }
+                }
+            }
         }
 
         private void CompileFont(string outputFolder)
