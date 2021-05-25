@@ -347,27 +347,67 @@ namespace AssFontSubset
 
                 var xd = new XmlDocument();
                 xd.LoadXml(ttxContent);
-                var namerecordList = xd.SelectNodes("ttFont/name/namerecord");
-                foreach (XmlNode record in namerecordList) {
-                    string nameID = record.Attributes["nameID"].Value.Trim();
-                    if (record.Attributes["langID"].Value != "0x409") {
-                        continue;
-                    }
 
-                    switch (nameID) {
-                        case "1":
-                        case "3":
-                        case "4":
-                        case "6":
-                            if (record.InnerText.Contains("Source Han")) {
-                                specialFont = "Source Han";
-                            }
-                            record.InnerText = font.SubsetFontName;
-                            replaced = true;
-                            break;
-                        default:
-                            break;
+                // replace font name
+                var namerecords = xd.SelectNodes(@"ttFont/name/namerecord[@langID='0x409']");
+                if (namerecords.Count != 0) { 
+                    // replace English name record
+                    foreach (XmlNode record in namerecords) {
+                        string nameID = record.Attributes["nameID"].Value.Trim();
+                        switch (nameID) {
+                            case "1":
+                            case "3":
+                            case "4":
+                            case "6":
+                                if (record.InnerText.Contains("Source Han")) {
+                                    specialFont = "Source Han";
+                                }
+                                record.InnerText = font.SubsetFontName;
+                                replaced = true;
+                                break;
+                            default:
+                                break;
+                        }
                     }
+                } else { 
+                    // if there is no English name record, mannually write a record
+                    XmlDocument record = new XmlDocument();
+                    record.LoadXml(
+                        "<name>" +
+                        "<namerecord nameID=\"0\" platformID=\"3\" platEncID=\"1\" langID=\"0x409\">" +
+                        "" +
+                        "</namerecord>" +
+                        "<namerecord nameID=\"1\" platformID=\"3\" platEncID=\"1\" langID=\"0x409\">" +
+                        font.SubsetFontName +
+                        "</namerecord>" +
+                        "<namerecord nameID=\"2\" platformID=\"3\" platEncID=\"1\" langID=\"0x409\">" +
+                        "" +
+                        "</namerecord>" +
+                        "<namerecord nameID=\"3\" platformID=\"3\" platEncID=\"1\" langID=\"0x409\">" +
+                        font.SubsetFontName +
+                        "</namerecord>" +
+                        "<namerecord nameID=\"4\" platformID=\"3\" platEncID=\"1\" langID=\"0x409\">" +
+                        font.SubsetFontName +
+                        "</namerecord>" +
+                        "<namerecord nameID=\"5\" platformID=\"3\" platEncID=\"1\" langID=\"0x409\">" +
+                        "" +
+                        "</namerecord>" +
+                        "<namerecord nameID=\"6\" platformID=\"3\" platEncID=\"1\" langID=\"0x409\">" +
+                        font.SubsetFontName +
+                        "</namerecord>" +
+                        "</name>"
+                        );
+                    var ttFont = xd.SelectSingleNode("ttFont");
+                    if (ttFont == null) {
+                        var result = MessageBox.Show($"ttx 中没有 ttFont Node。如果多次尝试后依然出现该错误，请把该字体文件报告给开发者。\r\n" +
+                                                $"字体名：{font.FontNameInAss}\r\n文件名：{font.OriginalFontFile}\r\n",
+                                                "ttx 中没有 ttFont Node", MessageBoxButton.YesNo, MessageBoxImage.Error, MessageBoxResult.No);
+                        this.m_Continue = result == MessageBoxResult.Yes;
+                        return;
+                    }
+                    XmlNode importedNode = ttFont.OwnerDocument.ImportNode(record.DocumentElement, true);
+                    ttFont.AppendChild(importedNode);
+                    replaced = true;
                 }
 
                 // remove substitution for ellipsis for source han sans/serif font
