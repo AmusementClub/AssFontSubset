@@ -71,8 +71,12 @@ namespace AssFontSubset
             BindingOperations.EnableCollectionSynchronization(TaskList, m_ProcessListLock);
             this.DataContext = this;
 
-            InitializeComponent();
 
+            InitializeComponent();
+            SourceHanEllipsis.IsChecked = Properties.Settings.Default.SourceHanEllipsis;
+            CloudList.IsChecked = Properties.Settings.Default.CloudList;
+            LocalList.IsChecked = Properties.Settings.Default.LocalList;
+            
             this.m_AssFiles = Environment.GetCommandLineArgs().Skip(1).ToArray();
         }
 
@@ -411,10 +415,9 @@ namespace AssFontSubset
                 }
 
                 // remove substitution for ellipsis for source han sans/serif font
-                if (specialFont == "Source Han") {
+                if (SourceHanEllipsis.IsChecked == true && specialFont == "Source Han") {
                     SourceHanFontEllipsis(ref xd);
                 }
-
 
                 xd.Save(ttxFile);
 
@@ -705,6 +708,13 @@ namespace AssFontSubset
                     MessageBox.Show(info.Output, info.Argument, MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
+        }
+
+        private void Window_Closed(object sender, EventArgs e) {
+            Properties.Settings.Default.SourceHanEllipsis = (bool)SourceHanEllipsis.IsChecked;
+            Properties.Settings.Default.CloudList = (bool)CloudList.IsChecked;
+            Properties.Settings.Default.LocalList = (bool)LocalList.IsChecked;
+            Properties.Settings.Default.Save();
         }
     }
 }

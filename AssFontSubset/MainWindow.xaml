@@ -5,9 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AssFontSubset"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800" FontSize="16"
+        Title="MainWindow" Height="445.53" Width="800" FontSize="16"
         Loaded="Window_Loaded"
-        AllowDrop="True" DragDrop.DragEnter="Window_DragEnter" DragDrop.Drop="Window_Drop" DragDrop.PreviewDragOver="Window_DragEnter">
+        AllowDrop="True" DragDrop.DragEnter="Window_DragEnter" DragDrop.Drop="Window_Drop" DragDrop.PreviewDragOver="Window_DragEnter"
+        Closed="Window_Closed">
     <Grid>
         <DockPanel LastChildFill="True">
             <TabControl x:Name="tabControl">
@@ -36,9 +37,15 @@
                         <TextBox x:Name="FontFolder" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Center" AllowDrop="True" DragDrop.Drop="Window_Drop" DragDrop.DragEnter="Window_DragEnter" DragDrop.PreviewDragOver="Window_DragEnter" />
                         <TextBox x:Name="OutputFolder" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Center" AllowDrop="True" DragDrop.Drop="Window_Drop" DragDrop.DragEnter="Window_DragEnter" DragDrop.PreviewDragOver="Window_DragEnter" />
 
-                        <Button x:Name="Start" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Content="开　始" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="Start_Click" FontSize="40" />
+                        <Button x:Name="Start" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Content="开　始" Margin="10,5,5,10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="Start_Click" FontSize="40" />
 
-                        <ProgressBar x:Name="Progressing" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="5,0,5,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Minimum="0" Maximum="10" />
+                        <CheckBox x:Name="SourceHanEllipsis" Margin="0,5,0,98" Grid.Row="3" Content="居中思源省略号" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+
+                        <CheckBox x:Name="CloudList" Margin="0,30,0,73" Grid.Row="3" Content="使用云跳过列表" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+
+                        <CheckBox x:Name="LocalList" Margin="0,55,0,46" Grid.Row="3" Content="使用本地跳过列表" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        
+                        <ProgressBar x:Name="Progressing" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="5,0,5,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Minimum="0" Maximum="10" />
                     </Grid>
                 </TabItem>
                 <TabItem Header="进程列表" x:Name="m_ProcessListTab">
