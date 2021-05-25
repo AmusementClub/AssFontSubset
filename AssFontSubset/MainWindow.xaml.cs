@@ -147,8 +147,6 @@ namespace AssFontSubset
         private bool FindFontFiles(string fontFolder, Dictionary<string, List<AssFontInfo>> fontsInAss,
             ref List<FontFileInfo> fontFileInfo)
         {
-            //var duplicateFontFiles = new Dictionary<string, List<string>>();
-
             var fontFiles = Directory.EnumerateFiles(fontFolder, "*.*", SearchOption.TopDirectoryOnly);
             string[] fontExtensions = { ".fon", ".otf", ".ttc", ".ttf" };
             foreach (var file in fontFiles) {
@@ -242,7 +240,7 @@ namespace AssFontSubset
         }
 
         private void CreateFontSubset(string fontFolder, string outputFolder, Dictionary<string, string> textsInAss,
-            List<FontFileInfo> fontFiles, ref List<SubsetFontInfo> subsetFonts)
+            List<FontFileInfo> fontFiles, ref List<SubsetFontInfo> subsetFonts, ref Dictionary<string, string> rdNameLookUp)
         {
             var processors = new List<Dictionary<string, string>>();
 
@@ -277,7 +275,15 @@ namespace AssFontSubset
                     outputFile += $"{Path.GetFileName(fontFile)}";
                 }
 
-                var randomString = this.RandomString(8);
+                // assign same randomized name for fonts with same family name
+                string randomString = "";
+                if (rdNameLookUp.ContainsKey(fontName)) {
+                    randomString = rdNameLookUp[fontName];
+                } else {
+                    randomString = this.RandomString(8);
+                    rdNameLookUp.Add(fontName, randomString);
+                }
+
                 var subsetFontInfo = new SubsetFontInfo {
                     FontNameInAss = fontName,
                     OriginalFontFile = fontFile,
@@ -479,6 +485,7 @@ namespace AssFontSubset
                 var textsInAss = new Dictionary<string, string>();
                 var subsetFonts = new List<SubsetFontInfo>();
                 var fontFiles = new List<FontFileInfo>();
+                var rdNameLookUp = new Dictionary<string, string>();
 
                 this.Progressing.IsIndeterminate = true;
                 this.m_SubsetPage.IsEnabled = false;
@@ -499,7 +506,7 @@ namespace AssFontSubset
                         }
 
                         this.Dispatcher.Invoke((() => this.Title = "创建字体子集"));
-                        this.CreateFontSubset(fontFolder, outputFolder, textsInAss, fontFiles, ref subsetFonts);
+                        this.CreateFontSubset(fontFolder, outputFolder, textsInAss, fontFiles, ref subsetFonts, ref rdNameLookUp);
 
                         this.Dispatcher.Invoke((() => this.Title = "字体拆包"));
                         this.DumpFont(subsetFonts);
