@@ -37,7 +37,7 @@
                         <TextBox x:Name="FontFolder" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Center" AllowDrop="True" DragDrop.Drop="Window_Drop" DragDrop.DragEnter="Window_DragEnter" DragDrop.PreviewDragOver="Window_DragEnter" />
                         <TextBox x:Name="OutputFolder" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Center" AllowDrop="True" DragDrop.Drop="Window_Drop" DragDrop.DragEnter="Window_DragEnter" DragDrop.PreviewDragOver="Window_DragEnter" />
 
-                        <Button x:Name="Start" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Content="开　始" Margin="10,5,5,10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="Start_Click" FontSize="40" />
+                        <Button x:Name="Start" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Content="开　始" Margin="5,5,5,10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="Start_Click" FontSize="40" />
 
                         <CheckBox x:Name="SourceHanEllipsis" Margin="0,5,0,98" Grid.Row="3" Content="居中思源省略号" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
 

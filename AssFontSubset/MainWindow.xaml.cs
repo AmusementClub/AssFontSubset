@@ -73,9 +73,9 @@ namespace AssFontSubset
 
 
             InitializeComponent();
-            SourceHanEllipsis.IsChecked = Properties.Settings.Default.SourceHanEllipsis;
-            CloudList.IsChecked = Properties.Settings.Default.CloudList;
-            LocalList.IsChecked = Properties.Settings.Default.LocalList;
+            this.SourceHanEllipsis.IsChecked = Properties.Settings.Default.SourceHanEllipsis;
+            this.CloudList.IsChecked = Properties.Settings.Default.CloudList;
+            this.LocalList.IsChecked = Properties.Settings.Default.LocalList;
             
             this.m_AssFiles = Environment.GetCommandLineArgs().Skip(1).ToArray();
         }
@@ -89,7 +89,7 @@ namespace AssFontSubset
                     Task.Run(() => {
                     try {
                         using (var client = new WebClient()) {
-                            byte[] buf = client.DownloadData("https://raw.githubusercontent.com/tastysugar/AssFontSubset/master/AssFontSubset/Properties/AssemblyInfo.cs");
+                            byte[] buf = client.DownloadData("https://cdn.jsdelivr.net/gh/tastysugar/AssFontSubset@master/AssFontSubset/Properties/AssemblyInfo.cs");
                             string data = Encoding.UTF8.GetString(buf);
                             var match = Regex.Match(data, @"\[assembly: AssemblyVersion\(""([0-9\.]*?)""\)\]", RegexOptions.ECMAScript | RegexOptions.Compiled);
                             if (match.Groups.Count > 1) {
@@ -326,8 +326,9 @@ namespace AssFontSubset
             subsetFonts.ForEach(font => File.Delete(font.SubsetFontFile));
         }
 
-        private void ChangeXmlFontName(List<SubsetFontInfo> subsetFonts)
+        private void ChangeXmlFontName(List<SubsetFontInfo> subsetFonts, Dictionary<string, bool> flags)
         {
+
             Parallel.ForEach(subsetFonts, (font) => {
                 if (!this.m_Continue) {
                     return;
@@ -359,6 +360,9 @@ namespace AssFontSubset
                     foreach (XmlNode record in namerecords) {
                         string nameID = record.Attributes["nameID"].Value.Trim();
                         switch (nameID) {
+                            case "0":
+                                record.InnerText = $"Processed by AssFontSubset v{Assembly.GetEntryAssembly().GetName().Version}";
+                                break;
                             case "1":
                             case "3":
                             case "4":
@@ -379,7 +383,7 @@ namespace AssFontSubset
                     record.LoadXml(
                         "<name>" +
                         "<namerecord nameID=\"0\" platformID=\"3\" platEncID=\"1\" langID=\"0x409\">" +
-                        "" +
+                        $"Processed by AssFontSubset v{Assembly.GetEntryAssembly().GetName().Version}" +
                         "</namerecord>" +
                         "<namerecord nameID=\"1\" platformID=\"3\" platEncID=\"1\" langID=\"0x409\">" +
                         font.SubsetFontName +
@@ -415,7 +419,7 @@ namespace AssFontSubset
                 }
 
                 // remove substitution for ellipsis for source han sans/serif font
-                if (SourceHanEllipsis.IsChecked == true && specialFont == "Source Han") {
+                if (flags["SourceHanEllipsis"] == true && specialFont == "Source Han") {
                     SourceHanFontEllipsis(ref xd);
                 }
 
@@ -535,6 +539,9 @@ namespace AssFontSubset
                 var subsetFonts = new List<SubsetFontInfo>();
                 var fontFiles = new List<FontFileInfo>();
                 var rdNameLookUp = new Dictionary<string, string>();
+                var flags = new Dictionary<string, bool> {
+                    { "SourceHanEllipsis", (bool)this.SourceHanEllipsis.IsChecked }
+                };
 
                 this.Progressing.IsIndeterminate = true;
                 this.m_SubsetPage.IsEnabled = false;
@@ -561,7 +568,7 @@ namespace AssFontSubset
                         this.DumpFont(subsetFonts);
 
                         this.Dispatcher.Invoke((() => this.Title = "修改字体名称"));
-                        this.ChangeXmlFontName(subsetFonts);
+                        this.ChangeXmlFontName(subsetFonts, flags);
 
                         this.Dispatcher.Invoke((() => this.Title = "字体组装"));
                         this.CompileFont(outputFolder);
