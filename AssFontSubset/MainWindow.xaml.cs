@@ -85,16 +85,19 @@ namespace AssFontSubset
                     Task.Run(() => {
                     try {
                         using (var client = new WebClient()) {
-                            byte[] buf = client.DownloadData("https://raw.githubusercontent.com/youlun/AssFontSubset/master/AssFontSubset/Properties/AssemblyInfo.cs");
+                            byte[] buf = client.DownloadData("https://raw.githubusercontent.com/tastysugar/AssFontSubset/master/AssFontSubset/Properties/AssemblyInfo.cs");
                             string data = Encoding.UTF8.GetString(buf);
                             var match = Regex.Match(data, @"\[assembly: AssemblyVersion\(""([0-9\.]*?)""\)\]", RegexOptions.ECMAScript | RegexOptions.Compiled);
                             if (match.Groups.Count > 1) {
                                 var onlineVer = new Version(match.Groups[1].Value);
                                 var localVer = Assembly.GetEntryAssembly().GetName().Version;
                                 if (onlineVer > localVer) {
-                                    MessageBox.Show("发现新版本，请去 GitHub 主页下载", "新版", MessageBoxButton.OK, MessageBoxImage.Information);
+                                    var result = MessageBox.Show("发现新版本，请去 GitHub 主页下载", "新版", MessageBoxButton.YesNo);
+                                    if (result.ToString() == "Yes") {
+                                            System.Diagnostics.Process.Start("https://github.com/tastysugar/AssFontSubset/releases");
+                                        }
+                                    }
                                 }
-                            }
                             }
                         } catch { }
                     });
