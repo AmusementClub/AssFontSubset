@@ -346,6 +346,7 @@ namespace AssFontSubset
                 }
 
                 var ttxContent = File.ReadAllText(ttxFile, new UTF8Encoding(false));
+                ttxContent = ttxContent.Replace("\0", ""); // remove null characters. it might be a bug in ttx.exe. 
                 bool replaced = false;
 
                 var specialFont = ""; // special hack for some fonts
