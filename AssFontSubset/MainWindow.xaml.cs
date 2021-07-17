@@ -170,13 +170,21 @@ namespace AssFontSubset
                             return;
                         }
                         try {
-                            var typeface = new GlyphTypeface(new Uri("file://" + file));
-                            var result = typeface.Win32FamilyNames.Values.Where(name => fontsInAss.ContainsKey(name));
-                            if (result.Count() > 0) {
-                                fontNames.AddRange(result.Distinct());
+                            var familynames = new List<string>();
+                            var fullnames = new List<string>();
+                            getFontNames(file, fullnames, familynames, 0);
+                            var fullnameResult = fullnames.Where(name => fontsInAss.ContainsKey(name));
+                            if (fullnameResult.Count() > 0) {
+                                fontNames.AddRange(fullnameResult.Distinct());
+                                //return;
+                            }
+                            var familynameResult = familynames.Where(name => fontsInAss.ContainsKey(name));
+                            if (familynameResult.Count() > 0) {
+                                fontNames.AddRange(familynameResult.Distinct());
                                 return;
                             }
-                        } catch (Exception ex) {
+                            
+                        } catch (Exception ex){
                             return;
                         }
                     },
@@ -221,6 +229,27 @@ namespace AssFontSubset
             }
 
             return true;
+        }
+
+        private void getFontNames(string file, List<string> fullnames, List<string> familynames, int index) {
+            StartProcess("ttx", new Dictionary<string, string> { { "-o", file + ".ttx" }, {"-y", index.ToString() }, { "-t", "name" }, { "", file } });
+            var xd = new XmlDocument();
+            var ttxContent = File.ReadAllText($"{file}.ttx", new UTF8Encoding(false));
+            xd.LoadXml(ttxContent);
+            XmlNodeList namerecords = xd.SelectNodes(@"ttFont/name/namerecord[@platformID=3]");
+            foreach (XmlNode record in namerecords) {
+                string nameID = record.Attributes["nameID"].Value.Trim();
+                switch (nameID) {
+                    case "1":
+                        familynames.Add(record.InnerText.Trim());
+                        break;
+                    case "4":
+                        fullnames.Add(record.InnerText.Trim());
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
 
         private bool DetectNotExistsFont(Dictionary<string, List<AssFontInfo>> fontsInAss,
