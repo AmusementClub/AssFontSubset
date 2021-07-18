@@ -16,7 +16,7 @@
 
 #### 注意：
 1. 每次生成时会自动删除 ass 同目录下的 output 文件夹。
-2. 目录名称中不能有 `#`
+2. 如果有 full name 和 family name 不同的字体，请不要混用 full name 和 family name，否则会提示找不到 family name 所指名的字体。
 
 ### 选项
 
