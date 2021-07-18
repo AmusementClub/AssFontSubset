@@ -155,15 +155,20 @@ namespace AssFontSubset
             ref List<FontFileInfo> fontFileInfo)
         {
             var fontFiles = Directory.EnumerateFiles(fontFolder, "*.*", SearchOption.TopDirectoryOnly);
+
+            foreach (var file in fontFiles) {
+                if (Path.GetExtension(file).ToLower() == ".ttx")
+                    File.Delete(file);
+            }
+
             string[] fontExtensions = { ".fon", ".otf", ".ttc", ".ttf" };
             foreach (var file in fontFiles) {
                 if (fontExtensions.Count(e => e == Path.GetExtension(file).ToLower()) == 0) {
                     continue;
                 }
 
-                int index = -1;
-                var fontNames = new List<string>();
-                bool success = false;
+                int index = 0;
+                var fontNames = new Dictionary<string, int>();
 
                 var parsers = new Action[] {
                     () => {
@@ -171,52 +176,20 @@ namespace AssFontSubset
                             return;
                         }
                         try {
-                            var familynames = new List<string>();
-                            var fullnames = new List<string>();
-                            getFontNames(file, fullnames, familynames, 0);
-                            var fullnameResult = fullnames.Where(name => fontsInAss.ContainsKey(name));
-                            if (fullnameResult.Count() > 0) {
-                                fontNames.AddRange(fullnameResult.Distinct());
-                                success = true;
-                                return;
-                            }
-                            var familynameResult = familynames.Where(name => fontsInAss.ContainsKey(name));
-                            if (familynameResult.Count() > 0) {
-                                fontNames.AddRange(familynameResult.Distinct());
-                                success = true;
-                                return;
-                            }
-                            
+                            MatchFontNames(file, fontNames, fontsInAss, 0);
                         } catch (Exception ex){
                             return;
                         }
                     },
                     () => {
-                        if (success || Path.GetExtension(file).ToLower() == ".otf") {
+                        if (Path.GetExtension(file).ToLower() != ".ttc") {
                             return;
                         }
-                        var fontFamilies = Fonts.GetFontFamilies(file).ToList();
-                        for (index = 0; index < fontFamilies.Count; index++) {
-                            var result = fontFamilies[index].FamilyNames.Values.Where(name => fontsInAss.ContainsKey(name));
-                            if (result.Count() > 0) {
-                                fontNames.AddRange(result.Distinct());
-                                success = true;
-                                return;
-                            }
+                        int ttcCount = GetTTCCount(file);
+                        for (index = 0; index < ttcCount - 1; index++) {
+                            MatchFontNames(file, fontNames, fontsInAss, index);
                         }
-                    }, () => {
-                        if (success || Path.GetExtension(file).ToLower() == ".otf") {
-                            return;
-                        }
-                        PrivateFontCollection collection = new PrivateFontCollection();
-                        collection.AddFontFile(file);
-                        var result = collection.Families.Where(f => fontsInAss.ContainsKey(f.Name)).Select(f => f.Name);
-                        if (result.Count() > 0) {
-                            fontNames.AddRange(result.Distinct());
-                            success = true;
-                        }
-                        RemoveFontResourceEx(file, 16, IntPtr.Zero);
-                    },
+                    }
                 };
 
                 for (int i = 0; i < parsers.Length && fontNames.Count == 0; i++) {
@@ -227,19 +200,22 @@ namespace AssFontSubset
                     continue;
                 }
 
-
                 foreach (var fontName in fontNames) {
-                    fontFileInfo.Add(new FontFileInfo { FontNumberInCollection = index, FileName = file, FontName = fontName });
+                    fontFileInfo.Add(new FontFileInfo { FontNumberInCollection = fontName.Value, FileName = file, FontName = fontName.Key });
                 }
             }
 
             return true;
         }
 
-        private void getFontNames(string file, List<string> fullnames, List<string> familynames, int index) {
-            StartProcess("ttx", new Dictionary<string, string> { { "-o", file + ".ttx" }, {"-y", index.ToString() }, { "-t", "name" }, { "", file } });
+        private void MatchFontNames(string file, Dictionary<string, int> fontNames, Dictionary<string, List<AssFontInfo>> fontsInAss, int index) 
+        {
+            var familynames = new List<string>();
+            var fullnames = new List<string>();
+
+            StartProcess("ttx", new Dictionary<string, string> { { "-o", $"{file}{index}.ttx" }, {"-y", index.ToString() }, { "-t", "name" }, { "", file } });
             var xd = new XmlDocument();
-            var ttxContent = File.ReadAllText($"{file}.ttx", new UTF8Encoding(false));
+            var ttxContent = File.ReadAllText($"{file}{index}.ttx", new UTF8Encoding(false));
             xd.LoadXml(ttxContent);
             XmlNodeList namerecords = xd.SelectNodes(@"ttFont/name/namerecord[@platformID=3]");
             foreach (XmlNode record in namerecords) {
@@ -255,6 +231,39 @@ namespace AssFontSubset
                         break;
                 }
             }
+
+            var fullnameResult = fullnames.Where(name => fontsInAss.ContainsKey(name));
+            if (fullnameResult.Count() > 0) {
+                fontNames[fullnameResult.Distinct().First()] = index;
+                return;
+            }
+            var familynameResult = familynames.Where(name => fontsInAss.ContainsKey(name));
+            if (familynameResult.Count() > 0) {
+                fontNames[familynameResult.Distinct().First()] = index;
+                return;
+            }
+        }
+
+
+        private int GetTTCCount(string file) 
+        {
+            int numOfFont = 0;
+
+            var fs = new FileStream(file, FileMode.Open);
+            var reader = new BinaryReader(fs);
+            reader.ReadInt32();
+            reader.ReadInt32();
+            numOfFont = reader.ReadInt32();
+
+            // convert Big Endian to Little Endian
+            if (BitConverter.IsLittleEndian) 
+            {
+                byte[] bytes = BitConverter.GetBytes(numOfFont);
+                Array.Reverse(bytes);
+                numOfFont = BitConverter.ToInt32(bytes, 0);
+            }
+
+            return numOfFont;
         }
 
         private bool DetectNotExistsFont(Dictionary<string, List<AssFontInfo>> fontsInAss,
@@ -339,11 +348,9 @@ namespace AssFontSubset
                     { " ", fontFile },
                     { "--text-file=", charactersFile},
                     { "--output-file=" , subsetFontInfo.SubsetFontFile},
-                    { "--name-languages=", "*"}
+                    { "--name-languages=", "*"},
+                    { "--font-number=", index.ToString()}
                 };
-                if (index > -1) {
-                    args.Add("--font-number=", index.ToString());
-                }
 
                 processors.Add(args);
             }
@@ -362,7 +369,6 @@ namespace AssFontSubset
 
         private void ChangeXmlFontName(List<SubsetFontInfo> subsetFonts, Dictionary<string, bool> flags)
         {
-
             Parallel.ForEach(subsetFonts, (font) => {
                 if (!this.m_Continue) {
                     return;
@@ -549,6 +555,8 @@ namespace AssFontSubset
                         if (!this.FindFontFiles(fontFolder, fontsInAss, ref fontFiles)) {
                             return;
                         }
+
+                        fontFiles = fontFiles.Distinct().ToList();
 
                         this.Dispatcher.Invoke((() => this.Title = "检查字体文件"));
                         if (!this.DetectNotExistsFont(fontsInAss, fontFiles)) {
