@@ -171,28 +171,16 @@ namespace AssFontSubset
                 var fontNames = new Dictionary<string, int>();
                 bool isCollection = Path.GetExtension(file).ToLower() == ".ttc";
 
-                var parsers = new Action[] {
-                    () => {
-                        if (isCollection) {
-                            return;
-                        }
-                        MatchFontNames(file, fontNames, fontsInAss, 0);
-                    },
-                    () => {
-                        if (!isCollection) {
-                            return;
-                        }
-                        int ttcCount = GetTTCCount(file);
-                        for (index = 0; index < ttcCount - 1; index++) {
-                            MatchFontNames(file, fontNames, fontsInAss, index);
-                        }
-                    }
-                };
-
-                for (int i = 0; i < parsers.Length && fontNames.Count == 0; i++) {
-                    parsers[i]();
+                if (!isCollection) {
+                    MatchFontNames(file, fontNames, fontsInAss, index);
                 }
-
+                else {
+                    int ttcCount = GetTTCCount(file);
+                    for (index = 0; index < ttcCount - 1; index++) {
+                        MatchFontNames(file, fontNames, fontsInAss, index);
+                    }
+                }
+                
                 if (fontNames.Count == 0) {
                     continue;
                 }
