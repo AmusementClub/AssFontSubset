@@ -163,6 +163,7 @@ namespace AssFontSubset
 
                 int index = -1;
                 var fontNames = new List<string>();
+                bool success = false;
 
                 var parsers = new Action[] {
                     () => {
@@ -176,11 +177,13 @@ namespace AssFontSubset
                             var fullnameResult = fullnames.Where(name => fontsInAss.ContainsKey(name));
                             if (fullnameResult.Count() > 0) {
                                 fontNames.AddRange(fullnameResult.Distinct());
-                                //return;
+                                success = true;
+                                return;
                             }
                             var familynameResult = familynames.Where(name => fontsInAss.ContainsKey(name));
                             if (familynameResult.Count() > 0) {
                                 fontNames.AddRange(familynameResult.Distinct());
+                                success = true;
                                 return;
                             }
                             
@@ -189,7 +192,7 @@ namespace AssFontSubset
                         }
                     },
                     () => {
-                        if (Path.GetExtension(file).ToLower() == ".otf") {
+                        if (success || Path.GetExtension(file).ToLower() == ".otf") {
                             return;
                         }
                         var fontFamilies = Fonts.GetFontFamilies(file).ToList();
@@ -197,11 +200,12 @@ namespace AssFontSubset
                             var result = fontFamilies[index].FamilyNames.Values.Where(name => fontsInAss.ContainsKey(name));
                             if (result.Count() > 0) {
                                 fontNames.AddRange(result.Distinct());
+                                success = true;
                                 return;
                             }
                         }
                     }, () => {
-                        if (Path.GetExtension(file).ToLower() == ".otf") {
+                        if (success || Path.GetExtension(file).ToLower() == ".otf") {
                             return;
                         }
                         PrivateFontCollection collection = new PrivateFontCollection();
@@ -209,6 +213,7 @@ namespace AssFontSubset
                         var result = collection.Families.Where(f => fontsInAss.ContainsKey(f.Name)).Select(f => f.Name);
                         if (result.Count() > 0) {
                             fontNames.AddRange(result.Distinct());
+                            success = true;
                         }
                         RemoveFontResourceEx(file, 16, IntPtr.Zero);
                     },
