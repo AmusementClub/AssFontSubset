@@ -213,6 +213,7 @@ namespace AssFontSubset
             StartProcess("ttx", new Dictionary<string, string> { { "-o", $"{file}{index}.ttx" }, {"-y", index.ToString() }, { "-t", "name" }, { "", file } });
             var xd = new XmlDocument();
             var ttxContent = File.ReadAllText($"{file}{index}.ttx", new UTF8Encoding(false));
+            ttxContent = ttxContent.Replace("\0", ""); // remove null characters. it might be a bug in ttx.exe. 
             xd.LoadXml(ttxContent);
             XmlNodeList namerecords = xd.SelectNodes(@"ttFont/name/namerecord[@platformID=3]");
             foreach (XmlNode record in namerecords) {
