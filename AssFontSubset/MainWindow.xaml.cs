@@ -244,20 +244,25 @@ namespace AssFontSubset
 
         private int GetTTCCount(string file) 
         {
-            int numOfFont = 0;
-
             var fs = new FileStream(file, FileMode.Open);
             var reader = new BinaryReader(fs);
             reader.ReadInt32();
             reader.ReadInt32();
-            numOfFont = reader.ReadInt32();
-
+            int numOfFont = reader.ReadInt32();
+            reader.Close();
+            fs.Close();
+            
             // convert Big Endian to Little Endian
             if (BitConverter.IsLittleEndian) 
             {
                 byte[] bytes = BitConverter.GetBytes(numOfFont);
                 Array.Reverse(bytes);
                 numOfFont = BitConverter.ToInt32(bytes, 0);
+            }
+
+            if (numOfFont < 0) {
+                MessageBox.Show($"ttc 字体数量非法：\r\n{Path.GetFileName(file)} = {numOfFont}\r\n请检查该 ttc 是否为合法文件。",
+                "ttc 读取失败", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             return numOfFont;
