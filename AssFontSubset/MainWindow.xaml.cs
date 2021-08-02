@@ -168,7 +168,7 @@ namespace AssFontSubset
                 }
 
                 int index = 0;
-                var fontNames = new Dictionary<string, int>();
+                var fontNames = new Dictionary<string, int>(); // { fontname: index }
                 bool isCollection = Path.GetExtension(file).ToLower() == ".ttc";
 
                 if (!isCollection) {
@@ -176,7 +176,7 @@ namespace AssFontSubset
                 }
                 else {
                     int ttcCount = GetTTCCount(file);
-                    for (index = 0; index < ttcCount - 1; index++) {
+                    for (index = 0; index < ttcCount; index++) {
                         MatchFontNames(file, fontNames, fontsInAss, index);
                     }
                 }
