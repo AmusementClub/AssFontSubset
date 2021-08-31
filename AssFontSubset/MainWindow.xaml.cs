@@ -677,8 +677,9 @@ namespace AssFontSubset
             }
 
             this.AssFileList.ItemsSource = validFiles;
-            this.FontFolder.Text = Path.GetDirectoryName(validFiles[0]) + "\\fonts";
-            this.OutputFolder.Text = Path.GetDirectoryName(validFiles[0]) + "\\output";
+            string dir = Path.GetDirectoryName(Path.GetFullPath(validFiles[0]));
+            this.FontFolder.Text = dir + "\\fonts";
+            this.OutputFolder.Text = dir + "\\output";
 
             this.FontFolder.Select(this.FontFolder.Text.Length - 1, 0);
             this.OutputFolder.Select(this.OutputFolder.Text.Length - 1, 0);
