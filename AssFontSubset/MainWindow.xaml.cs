@@ -478,11 +478,7 @@ namespace AssFontSubset
                         if (row.Substring(0, 6).ToLower() == "style:") {
                             assContent[line] = Regex.Replace(assContent[line], $"(Style:[^,\n]+),(@?){fontName},", $"$1,$2{newFontName},", RegexOptions.Compiled);
                         } else if (row.Substring(0, 9).ToLower() == "dialogue:") {
-                            if (row.Contains($@"\fn{fontName}")) {
-                                assContent[line] = row.Replace($@"\fn{fontName}", $@"\fn{newFontName}");
-                            } else if (row.Contains($@"\fn@{fontName}")) {
-                                assContent[line] = row.Replace($@"\fn@{fontName}", $@"\fn@{newFontName}");
-                            }
+                            assContent[line] = Regex.Replace(assContent[line], $@"\\fn(@?){fontName}", $@"\fn$1{newFontName}", RegexOptions.Compiled);
                         }
                     }
 
