@@ -93,22 +93,17 @@ namespace AssFontSubset
 
         private static void check_update(string url)
         {
-            try
-            {
-                using (var client = new WebClient())
-                {
+            try {
+                using (var client = new WebClient()) {
                     byte[] buf = client.DownloadData(url);
                     string data = Encoding.UTF8.GetString(buf);
                     var match = Regex.Match(data, @"\[assembly: AssemblyVersion\(""([0-9\.]*?)""\)\]", RegexOptions.ECMAScript | RegexOptions.Compiled);
-                    if (match.Groups.Count > 1)
-                    {
+                    if (match.Groups.Count > 1) {
                         var onlineVer = new Version(match.Groups[1].Value);
                         var localVer = Assembly.GetEntryAssembly().GetName().Version;
-                        if (onlineVer > localVer)
-                        {
+                        if (onlineVer > localVer) {
                             var result = MessageBox.Show("发现新版本，请去 GitHub 主页下载", "新版", MessageBoxButton.YesNo);
-                            if (result.ToString() == "Yes")
-                            {
+                            if (result.ToString() == "Yes") {
                                 System.Diagnostics.Process.Start("https://github.com/tastysugar/AssFontSubset/releases");
                             }
                         }
