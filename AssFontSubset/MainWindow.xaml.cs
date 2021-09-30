@@ -86,26 +86,36 @@ namespace AssFontSubset
                 this.FileDrop(this.m_AssFiles);
                 this.Start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             } else {
-                    Task.Run(() => {
-                    try {
-                        using (var client = new WebClient()) {
-                            byte[] buf = client.DownloadData("https://cdn.jsdelivr.net/gh/tastysugar/AssFontSubset@master/AssFontSubset/Properties/AssemblyInfo.cs");
-                            string data = Encoding.UTF8.GetString(buf);
-                            var match = Regex.Match(data, @"\[assembly: AssemblyVersion\(""([0-9\.]*?)""\)\]", RegexOptions.ECMAScript | RegexOptions.Compiled);
-                            if (match.Groups.Count > 1) {
-                                var onlineVer = new Version(match.Groups[1].Value);
-                                var localVer = Assembly.GetEntryAssembly().GetName().Version;
-                                if (onlineVer > localVer) {
-                                    var result = MessageBox.Show("发现新版本，请去 GitHub 主页下载", "新版", MessageBoxButton.YesNo);
-                                    if (result.ToString() == "Yes") {
-                                            System.Diagnostics.Process.Start("https://github.com/tastysugar/AssFontSubset/releases");
-                                        }
-                                    }
-                                }
-                            }
-                        } catch { }
-                    });
+                Task.Run(() => check_update("https://raw.githubusercontent.com/tastysugar/AssFontSubset/master/AssFontSubset/Properties/AssemblyInfo.cs"));
+                Task.Run(() => check_update("https://cdn.jsdelivr.net/gh/tastysugar/AssFontSubset@master/AssFontSubset/Properties/AssemblyInfo.cs"));
             }
+        }
+
+        private static void check_update(string url)
+        {
+            try
+            {
+                using (var client = new WebClient())
+                {
+                    byte[] buf = client.DownloadData(url);
+                    string data = Encoding.UTF8.GetString(buf);
+                    var match = Regex.Match(data, @"\[assembly: AssemblyVersion\(""([0-9\.]*?)""\)\]", RegexOptions.ECMAScript | RegexOptions.Compiled);
+                    if (match.Groups.Count > 1)
+                    {
+                        var onlineVer = new Version(match.Groups[1].Value);
+                        var localVer = Assembly.GetEntryAssembly().GetName().Version;
+                        if (onlineVer > localVer)
+                        {
+                            var result = MessageBox.Show("发现新版本，请去 GitHub 主页下载", "新版", MessageBoxButton.YesNo);
+                            if (result.ToString() == "Yes")
+                            {
+                                System.Diagnostics.Process.Start("https://github.com/tastysugar/AssFontSubset/releases");
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
         }
 
         private void Clear_Click(object sender, RoutedEventArgs e)
@@ -476,9 +486,9 @@ namespace AssFontSubset
 
                         string row = assContent[line];
                         if (row.Substring(0, 6).ToLower() == "style:") {
-                            assContent[line] = Regex.Replace(assContent[line], $"(Style:[^,\n]+),(@?){fontName},", $"$1,$2{newFontName},", RegexOptions.Compiled);
+                            assContent[line] = Regex.Replace(assContent[line], $"(Style:[^,\n]+),(@?){fontName},", $"${{1}},${{2}}{newFontName},", RegexOptions.Compiled);
                         } else if (row.Substring(0, 9).ToLower() == "dialogue:") {
-                            assContent[line] = Regex.Replace(assContent[line], $@"\\fn(@?){fontName}", $@"\fn$1{newFontName}", RegexOptions.Compiled);
+                            assContent[line] = Regex.Replace(assContent[line], $@"\\fn(@?){fontName}", $@"\fn${{1}}{newFontName}", RegexOptions.Compiled);
                         }
                     }
 
