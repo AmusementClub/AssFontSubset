@@ -481,9 +481,9 @@ namespace AssFontSubset
 
                         string row = assContent[line];
                         if (row.Substring(0, 6).ToLower() == "style:") {
-                            assContent[line] = Regex.Replace(assContent[line], $"(Style:[^,\n]+),(@?){fontName},", $"${{1}},${{2}}{newFontName},", RegexOptions.Compiled);
+                            assContent[line] = Regex.Replace(assContent[line], $"(Style:[^,\n]+),(@?){Regex.Escape(fontName)},", $"${{1}},${{2}}{newFontName},", RegexOptions.Compiled);
                         } else if (row.Substring(0, 9).ToLower() == "dialogue:") {
-                            assContent[line] = Regex.Replace(assContent[line], $@"\\fn(@?){fontName}", $@"\fn${{1}}{newFontName}", RegexOptions.Compiled);
+                            assContent[line] = Regex.Replace(assContent[line], $@"\\fn(@?){Regex.Escape(fontName)}", $@"\fn${{1}}{newFontName}", RegexOptions.Compiled);
                         }
                     }
 
