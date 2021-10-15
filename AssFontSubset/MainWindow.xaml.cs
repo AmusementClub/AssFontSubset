@@ -82,6 +82,10 @@ namespace AssFontSubset
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            check_dependency("ttx.exe", "fonttools", "https://github.com/fonttools/fonttools");
+            check_dependency("pyftsubset.exe", "fonttools", "https://github.com/fonttools/fonttools");
+
+
             if (this.m_AssFiles != null && this.m_AssFiles.Length > 0) {
                 this.FileDrop(this.m_AssFiles);
                 this.Start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -102,7 +106,7 @@ namespace AssFontSubset
                         var onlineVer = new Version(match.Groups[1].Value);
                         var localVer = Assembly.GetEntryAssembly().GetName().Version;
                         if (onlineVer > localVer) {
-                            var result = MessageBox.Show("发现新版本，请去 GitHub 主页下载", "新版", MessageBoxButton.YesNo);
+                            var result = MessageBox.Show($"当前版本: {localVer.ToString()}\n发现新版本: {onlineVer.ToString()}\n请去 GitHub 主页下载", "新版", MessageBoxButton.YesNo);
                             if (result.ToString() == "Yes") {
                                 System.Diagnostics.Process.Start("https://github.com/tastysugar/AssFontSubset/releases");
                             }
@@ -112,6 +116,37 @@ namespace AssFontSubset
             }
             catch { }
         }
+
+        private void check_dependency(string executable, string pkg_name, string url) {
+            if (GetFullPathFromWindows(executable) == null) {
+                var result = MessageBox.Show($"无法找到 \"{executable}\"，请安装 {pkg_name}，并确保其路径在 PATH 中。", "缺少依赖", MessageBoxButton.YesNo);
+                if (result.ToString() == "Yes") {
+                    System.Diagnostics.Process.Start(url);
+                    this.Close();
+                }
+                if (result.ToString() == "No") {
+                    this.Close();
+                }
+            }
+        }
+
+
+        public static string GetFullPathFromWindows(string exeName) {
+            if (exeName.Length >= MAX_PATH)
+                throw new ArgumentException($"The executable name '{exeName}' must have less than {MAX_PATH} characters.",
+                    nameof(exeName));
+
+            StringBuilder sb = new StringBuilder(exeName, MAX_PATH);
+            return PathFindOnPath(sb, null) ? sb.ToString() : null;
+        }
+
+        // https://docs.microsoft.com/en-us/windows/desktop/api/shlwapi/nf-shlwapi-pathfindonpathw
+        // https://www.pinvoke.net/default.aspx/shlwapi.PathFindOnPath
+        [DllImport("shlwapi.dll", CharSet = CharSet.Unicode, SetLastError = false)]
+        static extern bool PathFindOnPath([In, Out] StringBuilder pszFile, [In] string[] ppszOtherDirs);
+
+        // from MAPIWIN.h :
+        private const int MAX_PATH = 260;
 
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
