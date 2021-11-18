@@ -361,7 +361,10 @@ namespace AssFontSubset
                 if (rdNameLookUp.ContainsKey(fontName)) {
                     randomString = rdNameLookUp[fontName];
                 } else {
-                    randomString = this.RandomString(8);
+                    do {
+                        randomString = this.RandomString(8);
+                    } while (rdNameLookUp.ContainsValue(randomString)); // do while loop to avoid random string collision
+
                     rdNameLookUp.Add(fontName, randomString);
                 }
 
