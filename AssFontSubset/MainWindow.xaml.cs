@@ -208,7 +208,7 @@ namespace AssFontSubset
                 }
 
                 int index = 0;
-                var fontNames = new Dictionary<string, int>(); // { fontname: index }
+                var fontNames = new List<Tuple<string, int>>(); // (fontname, index)
                 bool isCollection = Path.GetExtension(file).ToLower() == ".ttc";
 
                 if (!isCollection) {
@@ -226,14 +226,14 @@ namespace AssFontSubset
                 }
 
                 foreach (var fontName in fontNames) {
-                    fontFileInfo.Add(new FontFileInfo { FontNumberInCollection = fontName.Value, FileName = file, FontName = fontName.Key });
+                    fontFileInfo.Add(new FontFileInfo { FontNumberInCollection = fontName.Item2, FileName = file, FontName = fontName.Item1 });
                 }
             }
 
             return true;
         }
 
-        private void MatchFontNames(string file, Dictionary<string, int> fontNames, Dictionary<string, List<AssFontInfo>> fontsInAss, int index) 
+        private void MatchFontNames(string file, List<Tuple<string, int>> fontNames, Dictionary<string, List<AssFontInfo>> fontsInAss, int index) 
         {
             var familynames = new List<string>();
             var fullnames = new List<string>();
@@ -260,12 +260,12 @@ namespace AssFontSubset
 
             var fullnameResult = fullnames.Where(name => fontsInAss.ContainsKey(name));
             if (fullnameResult.Count() > 0) {
-                fontNames[fullnameResult.Distinct().First()] = index;
+                fontNames.Add(new Tuple<string, int>(fullnameResult.Distinct().First(), index));
                 return;
             }
             var familynameResult = familynames.Where(name => fontsInAss.ContainsKey(name));
             if (familynameResult.Count() > 0) {
-                fontNames[familynameResult.Distinct().First()] = index;
+                fontNames.Add(new Tuple<string, int>(familynameResult.Distinct().First(), index));
                 return;
             }
         }
@@ -373,7 +373,7 @@ namespace AssFontSubset
                     OriginalFontFile = fontFile,
                     SubsetFontFile = outputFile + $".{randomString}._tmp_",
                     SubsetFontName = randomString,
-                    DumpedXmlFile = $@"{outputFolder}\{Path.GetFileNameWithoutExtension(outputFile)}.{randomString}.ttx",
+                    DumpedXmlFile = $@"{outputFolder}\{Path.GetFileNameWithoutExtension(outputFile)}.{index}.{randomString}.ttx",
                     TrackIndex = index
                 };
                 subsetFonts.Add(subsetFontInfo);
