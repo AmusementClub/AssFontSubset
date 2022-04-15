@@ -144,7 +144,7 @@ namespace AssFontSubset
             }
 
             Font font = this.Fonts[styleName];
-            string text = string.Join("", array.Skip(textIndex));
+            string text = string.Join(",", array.Skip(textIndex));
 
             string parsedText = this.ParseText(text);
             if (!string.IsNullOrEmpty(parsedText)) {
