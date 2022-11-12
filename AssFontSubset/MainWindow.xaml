@@ -39,11 +39,13 @@
 
                         <Button x:Name="Start" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Content="开　始" Margin="5,5,5,10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="Start_Click" FontSize="40" />
 
-                        <CheckBox x:Name="SourceHanEllipsis" Margin="0,5,0,98" Grid.Row="3" Content="居中思源省略号" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        <CheckBox x:Name="SourceHanEllipsis" Margin="0,5,0,98" Grid.Row="3" Content="居中思源省略号" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ToolTip="默认：打开。&#x0a;A special hack. 打开后，思源黑体和宋体的省略号会被居中对齐。"/>
 
-                        <CheckBox x:Name="CloudList" Margin="0,30,0,73" Grid.Row="3" Content="使用云跳过列表" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        <CheckBox x:Name="Debug" Margin="0,30,0,73" Grid.Row="3" Content="调试选项" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsChecked="False" ToolTip="默认：关闭。&#x0a;打开后会保留各种临时文件，用于检查字体名字等在各个阶段是否正确。"/>
 
-                        <CheckBox x:Name="LocalList" Margin="0,55,0,46" Grid.Row="3" Content="使用本地跳过列表" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        <CheckBox x:Name="CloudList" Margin="0,55,0,46" Grid.Row="3" Content="使用云跳过列表" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ToolTip="该功能尚未实现。敬请期待。"/>
+
+                        <CheckBox x:Name="LocalList" Margin="0,80,0,21" Grid.Row="3" Content="使用本地跳过列表" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ToolTip="该功能尚未实现。敬请期待。"/>
                         
                         <ProgressBar x:Name="Progressing" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="5,0,5,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Minimum="0" Maximum="10" />
                     </Grid>

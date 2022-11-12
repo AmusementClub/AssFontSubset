@@ -75,6 +75,7 @@ namespace AssFontSubset
 
             InitializeComponent();
             this.SourceHanEllipsis.IsChecked = Properties.Settings.Default.SourceHanEllipsis;
+            this.Debug.IsChecked = Properties.Settings.Default.Debug;
             this.CloudList.IsChecked = Properties.Settings.Default.CloudList;
             this.LocalList.IsChecked = Properties.Settings.Default.LocalList;
             
@@ -193,14 +194,9 @@ namespace AssFontSubset
         }
 
         private bool FindFontFiles(string fontFolder, Dictionary<string, List<AssFontInfo>> fontsInAss,
-            ref List<FontFileInfo> fontFileInfo)
+            ref List<FontFileInfo> fontFileInfo, Dictionary<string, bool> flags)
         {
             var fontFiles = Directory.EnumerateFiles(fontFolder, "*.*", SearchOption.TopDirectoryOnly);
-
-            foreach (var file in fontFiles) {
-                if (Path.GetExtension(file).ToLower() == ".ttx")
-                    File.Delete(file);
-            }
 
             string[] fontExtensions = { ".fon", ".otf", ".ttc", ".ttf" };
             foreach (var file in fontFiles) {
@@ -213,12 +209,12 @@ namespace AssFontSubset
                 bool isCollection = Path.GetExtension(file).ToLower() == ".ttc";
 
                 if (!isCollection) {
-                    MatchFontNames(file, fontNames, fontsInAss, index);
+                    MatchFontNames(file, fontNames, fontsInAss, index, flags);
                 }
                 else {
                     int ttcCount = GetTTCCount(file);
                     for (index = 0; index < ttcCount; index++) {
-                        MatchFontNames(file, fontNames, fontsInAss, index);
+                        MatchFontNames(file, fontNames, fontsInAss, index, flags);
                     }
                 }
                 
@@ -234,7 +230,7 @@ namespace AssFontSubset
             return true;
         }
 
-        private void MatchFontNames(string file, List<Tuple<string, int>> fontNames, Dictionary<string, List<AssFontInfo>> fontsInAss, int index) 
+        private void MatchFontNames(string file, List<Tuple<string, int>> fontNames, Dictionary<string, List<AssFontInfo>> fontsInAss, int index, Dictionary<string, bool> flags) 
         {
             var familynames = new List<string>();
             var fullnames = new List<string>();
@@ -243,6 +239,15 @@ namespace AssFontSubset
 
             var xd = new XmlDocument();
             ttxContent = ttxContent.Replace("\0", ""); // remove null characters. it might be a bug in ttx.exe. 
+
+            if (flags["Debug"])
+            {
+                using (StreamWriter sw = new StreamWriter($"{file}_{index}.ttx", false, new UTF8Encoding(false)))
+                {
+                    sw.Write(ttxContent);
+                }
+            }
+
             xd.LoadXml(ttxContent);
             XmlNodeList namerecords = xd.SelectNodes(@"ttFont/name/namerecord[@platformID=3]");
             foreach (XmlNode record in namerecords) {
@@ -322,7 +327,7 @@ namespace AssFontSubset
         }
 
         private void CreateFontSubset(string fontFolder, string outputFolder, Dictionary<string, string> textsInAss,
-            List<FontFileInfo> fontFiles, ref List<SubsetFontInfo> subsetFonts, ref Dictionary<string, string> rdNameLookUp)
+            List<FontFileInfo> fontFiles, ref List<SubsetFontInfo> subsetFonts, ref Dictionary<string, string> rdNameLookUp, Dictionary<string, bool> flags)
         {
             var processors = new List<Dictionary<string, string>>();
 
@@ -393,18 +398,22 @@ namespace AssFontSubset
             string exe = "pyftsubset.exe";
             Parallel.ForEach(processors, args => this.StartProcess(exe, args));
 
-            foreach (var font in fontFiles)
+            if (!flags["Debug"])
             {
-                File.Delete($@"{fontFolder}\{font.FontName}.txt");
+                foreach (var font in fontFiles)
+                {
+                    File.Delete($@"{fontFolder}\{font.FontName}.txt");
+                }
             }
         }
 
-        private void DumpFont(List<SubsetFontInfo> subsetFonts)
+        private void DumpFont(List<SubsetFontInfo> subsetFonts, Dictionary<string, bool> flags)
         {
             string exe = "ttx.exe";
             Parallel.ForEach(subsetFonts, font => this.StartProcess(exe,
                 new Dictionary<string, string> { { "-f ", "" }, { "-o ", font.DumpedXmlFile }, { "", font.SubsetFontFile } }));
-            subsetFonts.ForEach(font => File.Delete(font.SubsetFontFile));
+            if (!flags["Debug"])
+                subsetFonts.ForEach(font => File.Delete(font.SubsetFontFile));
         }
 
         private void ChangeXmlFontName(List<SubsetFontInfo> subsetFonts, Dictionary<string, bool> flags)
@@ -492,12 +501,13 @@ namespace AssFontSubset
             }
         }
 
-        private void CompileFont(string outputFolder)
+        private void CompileFont(string outputFolder, Dictionary<string, bool> flags)
         {
             string exe = "ttx.exe";
             var files = Directory.EnumerateFiles(outputFolder, "*.ttx", SearchOption.TopDirectoryOnly);
             Parallel.ForEach(files, file => this.StartProcess(exe, new Dictionary<string, string> { { "-f", "" }, { "", file } }));
-            files.ToList().ForEach(file => File.Delete(file));
+            if (!flags["Debug"])
+                files.ToList().ForEach(file => File.Delete(file));
         }
 
         private void ReplaceFontNameInAss(string[] assFiles, string outputFolder, Dictionary<string, List<AssFontInfo>> fontsInAss,
@@ -576,7 +586,8 @@ namespace AssFontSubset
                 var fontFiles = new List<FontFileInfo>();
                 var rdNameLookUp = new Dictionary<string, string>();
                 var flags = new Dictionary<string, bool> {
-                    { "SourceHanEllipsis", (bool)this.SourceHanEllipsis.IsChecked }
+                    { "SourceHanEllipsis", (bool)this.SourceHanEllipsis.IsChecked },
+                    { "Debug", (bool)this.Debug.IsChecked }
                 };
 
                 this.Progressing.IsIndeterminate = true;
@@ -588,7 +599,7 @@ namespace AssFontSubset
                         this.ParseAssfiles(assFiles, ref fontsInAss, ref textsInAss);
 
                         this.Dispatcher.Invoke((() => this.Title = "读取字体文件"));
-                        if (!this.FindFontFiles(fontFolder, fontsInAss, ref fontFiles)) {
+                        if (!this.FindFontFiles(fontFolder, fontsInAss, ref fontFiles, flags)) {
                             return;
                         }
 
@@ -600,16 +611,16 @@ namespace AssFontSubset
                         }
 
                         this.Dispatcher.Invoke((() => this.Title = "创建字体子集"));
-                        this.CreateFontSubset(fontFolder, outputFolder, textsInAss, fontFiles, ref subsetFonts, ref rdNameLookUp);
+                        this.CreateFontSubset(fontFolder, outputFolder, textsInAss, fontFiles, ref subsetFonts, ref rdNameLookUp, flags);
 
                         this.Dispatcher.Invoke((() => this.Title = "字体拆包"));
-                        this.DumpFont(subsetFonts);
+                        this.DumpFont(subsetFonts, flags);
 
                         this.Dispatcher.Invoke((() => this.Title = "修改字体名称"));
                         this.ChangeXmlFontName(subsetFonts, flags);
 
                         this.Dispatcher.Invoke((() => this.Title = "字体组装"));
-                        this.CompileFont(outputFolder);
+                        this.CompileFont(outputFolder, flags);
 
                         this.Dispatcher.Invoke((() => this.Title = "重命名字幕字体"));
                         this.ReplaceFontNameInAss(assFiles, outputFolder, fontsInAss, subsetFonts);
@@ -767,6 +778,7 @@ namespace AssFontSubset
             Properties.Settings.Default.SourceHanEllipsis = (bool)SourceHanEllipsis.IsChecked;
             Properties.Settings.Default.CloudList = (bool)CloudList.IsChecked;
             Properties.Settings.Default.LocalList = (bool)LocalList.IsChecked;
+            Properties.Settings.Default.Debug = (bool)Debug.IsChecked;
             Properties.Settings.Default.Save();
         }
     }
