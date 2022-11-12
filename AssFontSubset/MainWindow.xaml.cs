@@ -392,6 +392,11 @@ namespace AssFontSubset
 
             string exe = "pyftsubset.exe";
             Parallel.ForEach(processors, args => this.StartProcess(exe, args));
+
+            foreach (var font in fontFiles)
+            {
+                File.Delete($@"{fontFolder}\{font.FontName}.txt");
+            }
         }
 
         private void DumpFont(List<SubsetFontInfo> subsetFonts)
