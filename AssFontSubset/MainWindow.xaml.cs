@@ -666,10 +666,8 @@ namespace AssFontSubset
                 },
                 EnableRaisingEvents = true
             };
-            if (!p.StartInfo.EnvironmentVariables.ContainsKey("PYTHONIOENCODING")) { 
-                p.StartInfo.EnvironmentVariables.Add("PYTHONIOENCODING", "utf-8"); 
-            }
-                
+            p.StartInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
+
 
             var taskId = Guid.NewGuid();
 
