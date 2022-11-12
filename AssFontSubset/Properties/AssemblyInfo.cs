@@ -12,7 +12,7 @@ using System.Windows;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("AssFontSubset")]
-[assembly: AssemblyCopyright("Copyright © 2018-2021 youlun / tastySugar")]
+[assembly: AssemblyCopyright("Copyright © 2018-2022 youlun / tastySugar")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

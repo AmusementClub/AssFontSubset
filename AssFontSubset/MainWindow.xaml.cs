@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Drawing.Text;
 using System.IO;
@@ -238,9 +239,9 @@ namespace AssFontSubset
             var familynames = new List<string>();
             var fullnames = new List<string>();
 
-            StartProcess("ttx", new Dictionary<string, string> { { "-o", $"{file}{index}.ttx" }, {"-y", index.ToString() }, { "-t", "name" }, { "", file } });
+            string ttxContent = StartProcess("ttx", new Dictionary<string, string> { { "-o", $"-" }, { "-y", index.ToString() }, { "-t", "name" }, {"-q" , ""}, { "", file } });
+
             var xd = new XmlDocument();
-            var ttxContent = File.ReadAllText($"{file}{index}.ttx", new UTF8Encoding(false));
             ttxContent = ttxContent.Replace("\0", ""); // remove null characters. it might be a bug in ttx.exe. 
             xd.LoadXml(ttxContent);
             XmlNodeList namerecords = xd.SelectNodes(@"ttFont/name/namerecord[@platformID=3]");
@@ -313,7 +314,7 @@ namespace AssFontSubset
             }
 
             if (notExists.Count > 0) {
-                MessageBox.Show($"以下字体未找到，无法继续：\r\n{string.Join("\r\n", notExists)}",
+                MessageBox.Show($"以下字体未找到，无法继续：\r\n{string.Join("\r\n", notExists)}。提示：请确认字体名大小写是否正确。",
                     "缺少字体", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
@@ -626,10 +627,10 @@ namespace AssFontSubset
             }
         }
 
-        private void StartProcess(string exe, Dictionary<string, string> args)
+        private string StartProcess(string exe, Dictionary<string, string> args)
         {
             if (!this.m_Continue) {
-                return;
+                return "";
             }
 
             string output = "";
@@ -643,10 +644,13 @@ namespace AssFontSubset
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     WindowStyle = ProcessWindowStyle.Hidden,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    StandardErrorEncoding = Encoding.UTF8,
+                    StandardOutputEncoding = Encoding.UTF8,
                 },
                 EnableRaisingEvents = true
             };
+           p.StartInfo.EnvironmentVariables.Add("PYTHONIOENCODING", "utf-8");
 
             var taskId = Guid.NewGuid();
 
@@ -696,6 +700,7 @@ namespace AssFontSubset
                     "调用外部程序时发生错误", MessageBoxButton.YesNo, MessageBoxImage.Error, MessageBoxResult.No);
                 this.m_Continue = result == MessageBoxResult.Yes;
             }
+            return output;
         }
 
         private string RandomString(int length)
