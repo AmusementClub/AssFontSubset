@@ -51,7 +51,7 @@
 
    注意
    - 要填写 ass 文件中使用的名字。（例：如果你在 ass 中使用的 `Source Han Sans SC Medium`，那该文件中也要填写相同的名字，而不能填写 `思源黑体 Medium`）。
-   - 程序依旧会把跳过的完整字体复制到 output 文件夹下，该行为是为了便于自动化 remux。
+   - 程序依旧会把跳过的未经子集化的字体复制到 output 文件夹下，该行为是为了便于自动化 remux。
    - 如果跳过的字体是属于一个 ttc，那整个 ttc 都会被复制到 output 文件夹下。
 
    示例 skiplist.txt：
