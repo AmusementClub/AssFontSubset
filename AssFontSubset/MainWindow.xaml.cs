@@ -44,6 +44,8 @@ namespace AssFontSubset
         [DllImport("gdi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern int RemoveFontResourceEx(string lpszFilename, int fl, IntPtr pdv);
 
+        private List<string> skipList = new List<string> ();
+
         private struct SubsetFontInfo
         {
             public string OriginalFontFile;
@@ -95,6 +97,13 @@ namespace AssFontSubset
                 Task.Run(() => check_update("https://raw.githubusercontent.com/tastysugar/AssFontSubset/master/AssFontSubset/Properties/AssemblyInfo.cs"));
                 Task.Run(() => check_update("https://cdn.jsdelivr.net/gh/tastysugar/AssFontSubset@master/AssFontSubset/Properties/AssemblyInfo.cs"));
             }
+
+            if ((bool)this.LocalList.IsChecked) {
+                this.skipList.AddRange(readLocalSkipList());
+            }
+            if ((bool)this.CloudList.IsChecked){
+                this.skipList.AddRange(readCloudSkipList());
+            }
         }
 
         private static void check_update(string url)
@@ -131,7 +140,36 @@ namespace AssFontSubset
                 }
             }
         }
+        private List<string> readLocalSkipList()
+        {
+            List<string> output = new List<string>();
+            if (!File.Exists("skiplist.txt")){
+                return output;
+            }
 
+            using (StreamReader sr = new StreamReader("skiplist.txt", Encoding.UTF8)) {
+                while (!sr.EndOfStream) {
+                    output.Add(sr.ReadLine().Trim());
+                }
+            }
+            return output;
+        }
+
+        private List<string> readCloudSkipList()
+        {
+            List<string> output = new List<string>();
+            try {
+                using (var client = new WebClient()) {
+                    byte[] buf = client.DownloadData("https://raw.githubusercontent.com/tastysugar/AssFontSubset/master/CloudSkipList.txt");
+                    string data = Encoding.UTF8.GetString(buf);
+                    output = data.Split('\n').ToList();
+                    for (int i = 0; i < output.Count; i++) {
+                        output[i] = output[i].Trim();
+                    }
+                }
+            } catch { }
+            return output;
+        }
 
         public static string GetFullPathFromWindows(string exeName) {
             if (exeName.Length >= MAX_PATH)
@@ -240,10 +278,8 @@ namespace AssFontSubset
             var xd = new XmlDocument();
             ttxContent = ttxContent.Replace("\0", ""); // remove null characters. it might be a bug in ttx.exe. 
 
-            if (flags["Debug"])
-            {
-                using (StreamWriter sw = new StreamWriter($"{file}_{index}.ttx", false, new UTF8Encoding(false)))
-                {
+            if (flags["Debug"]) {
+                using (StreamWriter sw = new StreamWriter($"{file}_{index}.ttx", false, new UTF8Encoding(false))) {
                     sw.Write(ttxContent);
                 }
             }
@@ -327,13 +363,21 @@ namespace AssFontSubset
         }
 
         private void CreateFontSubset(string fontFolder, string outputFolder, Dictionary<string, string> textsInAss,
-            List<FontFileInfo> fontFiles, ref List<SubsetFontInfo> subsetFonts, ref Dictionary<string, string> rdNameLookUp, Dictionary<string, bool> flags)
+            List<FontFileInfo> fontFiles, ref List<SubsetFontInfo> subsetFonts, ref Dictionary<string, string> rdNameLookUp, List<string> skipList, Dictionary<string, bool> flags)
         {
             var processors = new List<Dictionary<string, string>>();
 
             foreach (var font in fontFiles) {
 
                 var fontName = font.FontName;
+
+                // skip fonts in skipList
+                if (skipList.Contains(fontName.ToLower()))
+                {
+                    File.Copy(font.FileName, Path.Combine(outputFolder, Path.GetFileName(font.FileName)), true);
+                    continue;
+                }
+
                 var characters = textsInAss[fontName];
 
                 // fix font fallback on ellipsis.
@@ -511,7 +555,7 @@ namespace AssFontSubset
         }
 
         private void ReplaceFontNameInAss(string[] assFiles, string outputFolder, Dictionary<string, List<AssFontInfo>> fontsInAss,
-            List<SubsetFontInfo> subsetFonts)
+            List<SubsetFontInfo> subsetFonts, List<string> skipList)
         {
             foreach (var assFile in assFiles) {
                 var assContent = new List<string>();
@@ -525,6 +569,11 @@ namespace AssFontSubset
 
                 foreach (var assFontInfo in fontsInAss) {
                     string fontName = assFontInfo.Key;
+
+                    // skip list
+                    if (skipList.Contains(fontName.ToLower()))
+                        continue;
+
                     var newFontName = subsetFonts.Find(f => f.FontNameInAss == fontName).SubsetFontName;
 
                     foreach (var font in assFontInfo.Value) {
@@ -589,6 +638,12 @@ namespace AssFontSubset
                     { "SourceHanEllipsis", (bool)this.SourceHanEllipsis.IsChecked },
                     { "Debug", (bool)this.Debug.IsChecked }
                 };
+                var skipList = this.skipList;
+
+                for (int i=0; i < skipList.Count; i++) {
+                    skipList[i] = skipList[i].ToLower();
+                }
+
 
                 this.Progressing.IsIndeterminate = true;
                 this.m_SubsetPage.IsEnabled = false;
@@ -611,7 +666,7 @@ namespace AssFontSubset
                         }
 
                         this.Dispatcher.Invoke((() => this.Title = "创建字体子集"));
-                        this.CreateFontSubset(fontFolder, outputFolder, textsInAss, fontFiles, ref subsetFonts, ref rdNameLookUp, flags);
+                        this.CreateFontSubset(fontFolder, outputFolder, textsInAss, fontFiles, ref subsetFonts, ref rdNameLookUp, skipList, flags);
 
                         this.Dispatcher.Invoke((() => this.Title = "字体拆包"));
                         this.DumpFont(subsetFonts, flags);
@@ -623,7 +678,7 @@ namespace AssFontSubset
                         this.CompileFont(outputFolder, flags);
 
                         this.Dispatcher.Invoke((() => this.Title = "重命名字幕字体"));
-                        this.ReplaceFontNameInAss(assFiles, outputFolder, fontsInAss, subsetFonts);
+                        this.ReplaceFontNameInAss(assFiles, outputFolder, fontsInAss, subsetFonts, skipList);
                     } catch (Exception ex) {
                         MessageBox.Show(ex.ToString(), "发生异常", MessageBoxButton.OK, MessageBoxImage.Warning);
                     }

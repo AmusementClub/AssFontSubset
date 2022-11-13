@@ -43,9 +43,9 @@
 
                         <CheckBox x:Name="Debug" Margin="0,30,0,73" Grid.Row="3" Content="调试选项" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsChecked="False" ToolTip="默认：关闭。&#x0a;打开后会保留各种临时文件，用于检查字体名字等在各个阶段是否正确。"/>
 
-                        <CheckBox x:Name="CloudList" Margin="0,55,0,46" Grid.Row="3" Content="使用云跳过列表" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ToolTip="该功能尚未实现。敬请期待。"/>
+                        <CheckBox x:Name="CloudList" Margin="0,55,0,46" Grid.Row="3" Content="使用云跳过列表" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ToolTip="默认：打开。&#x0a;打开后会尝试读取 GitHub 上已判明子集化后会出现问题的字体列表，并将其跳过不进行处理。&#x0a;使用此功能必须可以连接到 GitHub。"/>
 
-                        <CheckBox x:Name="LocalList" Margin="0,80,0,21" Grid.Row="3" Content="使用本地跳过列表" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ToolTip="该功能尚未实现。敬请期待。"/>
+                        <CheckBox x:Name="LocalList" Margin="0,80,0,21" Grid.Row="3" Content="使用本地跳过列表" FontSize="12" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ToolTip="默认：打开。&#x0a;打开后会尝试读取 exe 同目录下的 skiplist.txt。&#x0a;请将想要跳过不进行子集化处理的字体名以 UTF-8 编码写入此文件中，不同字体名按换行分割。"/>
                         
                         <ProgressBar x:Name="Progressing" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="5,0,5,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Minimum="0" Maximum="10" />
                     </Grid>
