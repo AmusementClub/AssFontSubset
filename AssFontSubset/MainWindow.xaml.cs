@@ -46,6 +46,17 @@ namespace AssFontSubset
 
         private List<string> skipList = new List<string> ();
 
+        private string rootdir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+        private void log(string info)
+        {
+            if ((bool) this.Debug.IsChecked) {
+                using (StreamWriter logger = new StreamWriter(Path.Combine(rootdir, $"log_{DateTime.Now.ToString("yyyy-MM-dd_HHmmss")}.txt"), true, Encoding.UTF8)) {
+                    logger.WriteLine(info);
+                }
+            }
+        }
+
         private struct SubsetFontInfo
         {
             public string OriginalFontFile;
@@ -82,6 +93,15 @@ namespace AssFontSubset
             this.LocalList.IsChecked = Properties.Settings.Default.LocalList;
             
             this.m_AssFiles = Environment.GetCommandLineArgs().Skip(1).ToArray();
+
+            log($"MainWindow 1: skiplist = {string.Join(", ", this.skipList)}");
+            if ((bool)this.LocalList.IsChecked) {
+                this.skipList.AddRange(readLocalSkipList());
+            }
+            if ((bool)this.CloudList.IsChecked) {
+                this.skipList.AddRange(readCloudSkipList());
+            }
+            log($"MainWindow 2: skiplist = {string.Join(", ", this.skipList)}");
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -96,13 +116,6 @@ namespace AssFontSubset
             } else {
                 Task.Run(() => check_update("https://raw.githubusercontent.com/tastysugar/AssFontSubset/master/AssFontSubset/Properties/AssemblyInfo.cs"));
                 Task.Run(() => check_update("https://cdn.jsdelivr.net/gh/tastysugar/AssFontSubset@master/AssFontSubset/Properties/AssemblyInfo.cs"));
-            }
-
-            if ((bool)this.LocalList.IsChecked) {
-                this.skipList.AddRange(readLocalSkipList());
-            }
-            if ((bool)this.CloudList.IsChecked){
-                this.skipList.AddRange(readCloudSkipList());
             }
         }
 
@@ -143,15 +156,18 @@ namespace AssFontSubset
         private List<string> readLocalSkipList()
         {
             List<string> output = new List<string>();
-            if (!File.Exists("skiplist.txt")){
+
+            var skipListPath = Path.Combine(rootdir, "skiplist.txt");
+            if (!File.Exists(skipListPath)){
                 return output;
             }
 
-            using (StreamReader sr = new StreamReader("skiplist.txt", Encoding.UTF8)) {
+            using (StreamReader sr = new StreamReader(skipListPath, Encoding.UTF8)) {
                 while (!sr.EndOfStream) {
                     output.Add(sr.ReadLine().Trim());
                 }
             }
+            log($"readLocalSkipList: output = {string.Join(", ", output)}\n");
             return output;
         }
 
@@ -167,7 +183,10 @@ namespace AssFontSubset
                         output[i] = output[i].Trim();
                     }
                 }
-            } catch { }
+            } catch (Exception e) {
+                log($"readCloudSkipList: exception catched \nMessage:{e.Message}\n");
+            }
+            log($"readCloudSkipList: output = {string.Join(", ", output)}\n");
             return output;
         }
 
@@ -644,6 +663,7 @@ namespace AssFontSubset
                     skipList[i] = skipList[i].ToLower();
                 }
 
+                log($"Start Click: skiplist = {string.Join(", ", skipList)} \n");
 
                 this.Progressing.IsIndeterminate = true;
                 this.m_SubsetPage.IsEnabled = false;
