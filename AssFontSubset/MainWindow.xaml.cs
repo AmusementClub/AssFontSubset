@@ -370,7 +370,7 @@ namespace AssFontSubset
             }
 
             if (notExists.Count > 0) {
-                MessageBox.Show($"以下字体未找到，无法继续：\r\n{string.Join("\r\n", notExists)}。提示：请确认字体名大小写是否正确。",
+                MessageBox.Show($"以下字体未找到，无法继续：\r\n{string.Join("\r\n", notExists)}\r\n提示：请确认字体名大小写是否正确。",
                     "缺少字体", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
