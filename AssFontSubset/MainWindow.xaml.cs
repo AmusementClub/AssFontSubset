@@ -262,7 +262,7 @@ namespace AssFontSubset
                 }
 
                 int index = 0;
-                var fontNames = new List<Tuple<string, int>>(); // (fontname, index)
+                var fontNames = new HashSet<Tuple<string, int>>(); // (fontname, index)
                 bool isCollection = Path.GetExtension(file).ToLower() == ".ttc";
 
                 if (!isCollection) {
@@ -287,7 +287,7 @@ namespace AssFontSubset
             return true;
         }
 
-        private void MatchFontNames(string file, List<Tuple<string, int>> fontNames, Dictionary<string, List<AssFontInfo>> fontsInAss, int index, Dictionary<string, bool> flags) 
+        private void MatchFontNames(string file, HashSet<Tuple<string, int>> fontNames, Dictionary<string, List<AssFontInfo>> fontsInAss, int index, Dictionary<string, bool> flags) 
         {
             var familynames = new List<string>();
             var fullnames = new List<string>();
@@ -319,15 +319,11 @@ namespace AssFontSubset
                 }
             }
 
-            var fullnameResult = fullnames.Where(name => fontsInAss.ContainsKey(name));
-            if (fullnameResult.Count() > 0) {
-                fontNames.Add(new Tuple<string, int>(fullnameResult.Distinct().First(), index));
-                return;
+            foreach (var fullnameResult in familynames.Where(name => fontsInAss.ContainsKey(name))) {
+                fontNames.Add(new Tuple<string, int>(fullnameResult, index));
             }
-            var familynameResult = familynames.Where(name => fontsInAss.ContainsKey(name));
-            if (familynameResult.Count() > 0) {
-                fontNames.Add(new Tuple<string, int>(familynameResult.Distinct().First(), index));
-                return;
+            foreach (var familynameResult in familynames.Where(name => fontsInAss.ContainsKey(name))) {
+                fontNames.Add(new Tuple<string, int>(familynameResult, index));
             }
         }
 
