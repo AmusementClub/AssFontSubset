@@ -76,3 +76,17 @@
 
 1. 多线程查找字体名
 
+## FAQ 常见问题和故障排除
+
+1. 如果弹出的错误信息中有提到`请尝试使用 FontForge 重新生成字体。`： 请下载并安装 [Fontforge](https://fontforge.org/en-US/)，然后使用 Fontforge 打开有问题的字体，不需要改动任何信息，直接点文件——生成字体（File - Generate Font），然后生成一个新的字体文件，无视中途弹出的警告。再使用新生成的字体进行子集化操作。
+
+
+2. 如果 Fontforge 无法解决问题，或出现奇怪的错误，且没有有用的错误信息，请尝试更新 fonttools:
+
+```
+pip3 install --upgrade fonttools
+```
+
+3. 其他已知问题：
+   [在竖排字体的符号可能会出现问题](https://github.com/tastysugar/AssFontSubset/issues/5)
+   [一些 otf 字体竖排时子集化后，字体大小在 vsfilter 中显示不正常](https://github.com/tastysugar/AssFontSubset/issues/2)
