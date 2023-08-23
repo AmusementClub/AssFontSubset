@@ -319,7 +319,7 @@ namespace AssFontSubset
                 }
             }
 
-            foreach (var fullnameResult in familynames.Where(name => fontsInAss.ContainsKey(name))) {
+            foreach (var fullnameResult in fullnames.Where(name => fontsInAss.ContainsKey(name))) {
                 fontNames.Add(new Tuple<string, int>(fullnameResult, index));
             }
             foreach (var familynameResult in familynames.Where(name => fontsInAss.ContainsKey(name))) {
