@@ -24,6 +24,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Xml;
 using Path = System.IO.Path;
+using AssParser.Lib;
 
 namespace AssFontSubset
 {
@@ -85,7 +86,7 @@ namespace AssFontSubset
             BindingOperations.EnableCollectionSynchronization(TaskList, m_ProcessListLock);
             this.DataContext = this;
 
-
+            
             InitializeComponent();
             this.SourceHanEllipsis.IsChecked = Properties.Settings.Default.SourceHanEllipsis;
             this.Debug.IsChecked = Properties.Settings.Default.Debug;
@@ -161,12 +162,13 @@ namespace AssFontSubset
             if (!File.Exists(skipListPath)){
                 return output;
             }
-
+            
             using (StreamReader sr = new StreamReader(skipListPath, Encoding.UTF8)) {
                 while (!sr.EndOfStream) {
                     output.Add(sr.ReadLine().Trim());
                 }
             }
+            
             log($"readLocalSkipList: output = {string.Join(", ", output)}\n");
             return output;
         }
@@ -218,35 +220,21 @@ namespace AssFontSubset
             ref Dictionary<string, string> textsInAss)
         {
             foreach (string assFile in assFiles) {
-                AssParser parser = new AssParser();
-                var result = parser.Parse(assFile);
-                var _fonts = result.Item1;
-                var _texts = result.Item2;
+                var parsedAss = AssParser.Lib.AssParser.ParseAssFile(assFile).Result;
+                var fonts = parsedAss.UsedFonts();
 
-                foreach (var font in _fonts) {
-                    string fontName = font.Key;
+                foreach (var fontinfo in fonts) {
+                    string fontName = fontinfo.FontName;
                     if (!fontsInAss.ContainsKey(fontName)) {
                         fontsInAss[fontName] = new List<AssFontInfo>();
                     }
-                    foreach (int line in font.Value) {
-                        fontsInAss[fontName].Add(new AssFontInfo {
-                            AssFilePath = assFile,
-                            LineNumber = line
-                        });
-                    }
-                }
+                    fontsInAss[fontName].Add(new AssFontInfo {
+                        AssFilePath = assFile,
+                        LineNumber = 0
+                    });
 
-                foreach (var text in _texts) {
-                    string fontName = text.Key;
-                    if (!textsInAss.ContainsKey(fontName)) {
-                        textsInAss[fontName] = "";
-                    }
-                    textsInAss[fontName] += text.Value;
+                    textsInAss[fontName] = fontinfo.UsedChar;
                 }
-            }
-            var keys = new List<string>(textsInAss.Keys);
-            foreach (var key in keys) {
-                textsInAss[key] = new string(textsInAss[key].Distinct().ToArray());
             }
         }
 
@@ -573,13 +561,11 @@ namespace AssFontSubset
             List<SubsetFontInfo> subsetFonts, List<string> skipList)
         {
             foreach (var assFile in assFiles) {
-                var assContent = new List<string>();
+                string assContent = "";
                 var subsetComments = new List<string>();
 
                 using (StreamReader sr = new StreamReader(assFile, true)) {
-                    while (!sr.EndOfStream) {
-                        assContent.Add(sr.ReadLine());
-                    }
+                    assContent = sr.ReadToEnd();
                 }
 
                 foreach (var assFontInfo in fontsInAss) {
@@ -591,33 +577,35 @@ namespace AssFontSubset
 
                     var newFontName = subsetFonts.Find(f => f.FontNameInAss == fontName).SubsetFontName;
 
-                    foreach (var font in assFontInfo.Value) {
+                    foreach(var font in assFontInfo.Value) {
                         if (font.AssFilePath != assFile) {
                             continue;
                         }
-                        int line = font.LineNumber;
 
-                        string row = assContent[line];
-                        if (row.Substring(0, 6).ToLower() == "style:") {
-                            assContent[line] = Regex.Replace(assContent[line], $"(Style:[^,\n]+),(@?){Regex.Escape(fontName)},", $"${{1}},${{2}}{newFontName},", RegexOptions.Compiled);
-                        } else if (row.Substring(0, 9).ToLower() == "dialogue:") {
-                            assContent[line] = Regex.Replace(assContent[line], $@"\\fn(@?){Regex.Escape(fontName)}", $@"\fn${{1}}{newFontName}", RegexOptions.Compiled);
+                        string pattern = $@"(\nStyle:[^,\n]+),(@?){Regex.Escape(fontName)},";
+                        string replace = $"${{1}},${{2}}{newFontName},";
+                        assContent = Regex.Replace(assContent, $"(\nStyle:[^,\n]+),(@?){Regex.Escape(fontName)},", $"${{1}},${{2}}{newFontName},", RegexOptions.Compiled);
+                        assContent = Regex.Replace(assContent, $"(\\{{[^\\n}}]*\\\\fn@?){Regex.Escape(fontName)}([^\\n{{]*\\}})", $@"${{1}}{newFontName}${{2}}", RegexOptions.Compiled);
+
+
+                        string subsetComment = $"; Font Subset: {newFontName} - {fontName}";
+                        if (!subsetComments.Contains(subsetComment)) {
+                            subsetComments.Add(subsetComment);
                         }
                     }
-
-                    string subsetComment = $"; Font Subset: {newFontName} - {fontName}";
-                    if (!subsetComments.Contains(subsetComment)) {
-                        subsetComments.Add(subsetComment);
-                    }
+                    
                 }
 
-                int index = assContent.FindIndex(row => row.Length >= 13 && row.Substring(0, 13).ToLower() == "[script info]");
-                assContent.Insert(index + 1, $"; Processed by AssFontSubset v{Assembly.GetEntryAssembly().GetName().Version}");
-                assContent.Insert(index + 1, string.Join("\r\n", subsetComments));
+                assContent = Regex.Replace(
+                    assContent,
+                    @"\[Script Info\]",
+                    "[Script Info]\n" +
+                    $"; Processed by AssFontSubset v{Assembly.GetEntryAssembly().GetName().Version}\n" +
+                    string.Join("\r\n", subsetComments),
+                    RegexOptions.Compiled);
 
-                string newAssContent = string.Join("\r\n", assContent);
                 using (StreamWriter sw = new StreamWriter(outputFolder + "\\" + Path.GetFileName(assFile), false, Encoding.UTF8)) {
-                    sw.Write(newAssContent);
+                    sw.Write(assContent);
                 }
             }
         }
