@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AssFontSubset"
         mc:Ignorable="d"
-        Title="MainWindow" Height="445.53" Width="800" FontSize="16"
+        Title="AssFontSubset" Height="445.53" Width="800" FontSize="16"
         Loaded="Window_Loaded"
         AllowDrop="True" DragDrop.DragEnter="Window_DragEnter" DragDrop.Drop="Window_Drop" DragDrop.PreviewDragOver="Window_DragEnter"
         Closed="Window_Closed">
