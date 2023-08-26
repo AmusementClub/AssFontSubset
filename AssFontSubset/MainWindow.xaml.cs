@@ -47,7 +47,7 @@ namespace AssFontSubset
 
         private List<string> skipList = new List<string> ();
 
-        private string rootdir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+        private string rootdir = Path.GetDirectoryName(System.AppContext.BaseDirectory);
 
         private void log(string info)
         {
