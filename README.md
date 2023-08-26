@@ -2,8 +2,19 @@
 使用 fonttools 生成 ASS 字幕文件的字体子集，并自动修改字体名称及 ASS 文件中对应的字体名称
 
 ## 依赖
-1. [fonttools](https://github.com/fonttools/fonttools)
-2. Path 环境变量中存在 pyftsubset.exe 和 ttx.exe
+1. [.Net SDK 7.0](https://dotnet.microsoft.com/download/dotnet/7.0)
+   不要安装 runtime 而是要安装 SDK。虽说只安装 runtime 也可以使用，但不知为何程序启动会耗时很久，换成 SDK 后秒开。我也不知道微软是怎么搞的。
+   </br>
+2. 安装 python 3 并安装 [fonttools](https://github.com/fonttools/fonttools)
+   可以使用 pip 直接安装
+   ```
+   pip3 install fonttools
+   ```
+   亦或者采用 fonttools 说明中的任意方法。
+   </br>
+3. Path 环境变量中存在 pyftsubset.exe 和 ttx.exe
+   如果成功安装 fonttools, pyftsubset.exe 和 ttx.exe 会自动添加到 Path 环境变量中。
+
 
 ## 使用方法
 
