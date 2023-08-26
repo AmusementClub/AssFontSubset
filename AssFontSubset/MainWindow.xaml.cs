@@ -71,7 +71,6 @@ namespace AssFontSubset
         private struct AssFontInfo
         {
             public string AssFilePath;
-            public int LineNumber;
         }
 
         private struct FontFileInfo
@@ -224,16 +223,29 @@ namespace AssFontSubset
                 var fonts = parsedAss.UsedFonts();
 
                 foreach (var fontinfo in fonts) {
-                    string fontName = fontinfo.FontName;
+                    string fontName = Regex.Replace(fontinfo.FontName, "^@", "", RegexOptions.Compiled);
+                    bool dup = false;
                     if (!fontsInAss.ContainsKey(fontName)) {
                         fontsInAss[fontName] = new List<AssFontInfo>();
+                    } else {
+                        foreach (var fn in fontsInAss[fontName]) {
+                            if (fn.AssFilePath.Equals(assFile))
+                                dup = true;
+                        }
                     }
-                    fontsInAss[fontName].Add(new AssFontInfo {
-                        AssFilePath = assFile,
-                        LineNumber = 0
-                    });
+                    if (!dup) {
+                        fontsInAss[fontName].Add(new AssFontInfo { AssFilePath = assFile });
+                    }
+                    
 
-                    textsInAss[fontName] = fontinfo.UsedChar;
+                    if (!textsInAss.ContainsKey(fontName)) {
+                        textsInAss[fontName] = fontinfo.UsedChar;
+                    }
+                    else {
+                        textsInAss[fontName].Concat(fontinfo.UsedChar);
+                    }
+
+                    
                 }
             }
         }
