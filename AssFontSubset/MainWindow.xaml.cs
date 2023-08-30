@@ -302,8 +302,15 @@ namespace AssFontSubset
                     sw.Write(ttxContent);
                 }
             }
-
-            xd.LoadXml(ttxContent);
+            try {
+                xd.LoadXml(ttxContent);
+            } catch (Exception ex) {
+                using (StreamWriter sw = new StreamWriter($"{file}_{index}.ttx", false, new UTF8Encoding(false))) {
+                    sw.Write(ttxContent);
+                }
+                MessageBox.Show($"ttx 读取错误，可能是字体文件{file}中存在非法字符。\r\n请尝试打开'output\\{file}_{index}.ttx'查看问题所在。\r\n并使用 fontforge 编辑该字体文件的名称信息，将非法字符删除。\r\n\r\n" + ex.ToString(), "发生异常", MessageBoxButton.OK, MessageBoxImage.Warning);
+            };
+            
             XmlNodeList namerecords = xd.SelectNodes(@"ttFont/name/namerecord[@platformID=3]");
             foreach (XmlNode record in namerecords) {
                 string nameID = record.Attributes["nameID"].Value.Trim();
