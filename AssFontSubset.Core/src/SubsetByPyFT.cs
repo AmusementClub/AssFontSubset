@@ -1,20 +1,19 @@
 ﻿using Mobsub.SubtitleParse.AssTypes;
 using Mobsub.SubtitleParse;
 using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using ZLogger;
+using System.Diagnostics;
 
 namespace AssFontSubset.Core;
 
-public class SubsetByPyFT
+public class SubsetByPyFT(ILogger? logger = null)
 {
-    public static void Subset(FileInfo[] path, DirectoryInfo? fontPath, DirectoryInfo? outputPath, DirectoryInfo? binPath, bool sourceHanEllipsis, bool debug)
-    {
-        var subsetConfig = new SubsetConfig
-        {
-            SourceHanEllipsis = sourceHanEllipsis,
-            DebugMode = debug,
-        };
+    private readonly ILogger? _logger = logger;
+    private static readonly Stopwatch _stopwatch = new();
 
+    public void Subset(FileInfo[] path, DirectoryInfo? fontPath, DirectoryInfo? outputPath, DirectoryInfo? binPath, SubsetConfig subsetConfig)
+    {
         var baseDir = path[0].Directory!.FullName;
         fontPath ??= new DirectoryInfo(Path.Combine(baseDir, "fonts"));
         outputPath ??= new DirectoryInfo(Path.Combine(baseDir, "output"));
@@ -34,42 +33,9 @@ public class SubsetByPyFT
         var optDir = outputPath.FullName;
 
         var fontInfos = GetFontInfoFromFiles(fontDir);
-        var pyFT = new PyFontTools(pyftsubset, ttx) { Config = subsetConfig };
-
-        Dictionary<string, AssData> assMulti = [];
-        List<Dictionary<AssFontInfo, List<Rune>>> assMultiFonts = [];
-        foreach (var assFile in path)
-        {
-            var assFileNew = Path.Combine(optDir, assFile.Name);
-            var assFonts = AssFont.GetAssFonts(assFile.FullName, out var ass);
-            assMultiFonts.Add(assFonts);
-            assMulti.Add(assFileNew, ass);
-            //var subsetFonts = GetSubsetFonts(fontInfos, assFonts, out var fontMap);
-            //pyFT.SubsetFonts(subsetFonts, optDir, out var nameMap);
-            //ChangeAssFontName(ass, nameMap, fontMap);
-            //ass.WriteAssFile(assFileNew);
-        }
-
-        for (var i = 1; i < assMultiFonts.Count; i++)
-        {
-            foreach (var kv in assMultiFonts[i])
-            {
-                if (assMultiFonts[0].TryGetValue(kv.Key, out List<Rune>? value))
-                {
-                    value.AddRange(kv.Value);
-                }
-                else
-                {
-                    assMultiFonts[0].Add(kv.Key, kv.Value);
-                }
-            }
-        }
-
-        foreach (var kv in assMultiFonts[0])
-        {
-            assMultiFonts[0][kv.Key] = kv.Value.Distinct().ToList();
-        }
-        var subsetFonts = GetSubsetFonts(fontInfos, assMultiFonts[0], out var fontMap);
+        var pyFT = new PyFontTools(pyftsubset, ttx, _logger) { Config = subsetConfig, sw = _stopwatch };
+        var assFonts = GetAssFontInfoFromFiles(path, optDir, out var assMulti);
+        var subsetFonts = GetSubsetFonts(fontInfos, assFonts, out var fontMap);
         pyFT.SubsetFonts(subsetFonts, optDir, out var nameMap);
 
         foreach (var kv in assMulti)
@@ -92,16 +58,21 @@ public class SubsetByPyFT
         }
     }
 
-    static List<FontInfo> GetFontInfoFromFiles(string dir)
+    List<FontInfo> GetFontInfoFromFiles(string dir)
     {
         string[] supportFonts = [".ttf", ".otf", ".ttc", "otc"];
         List<FontInfo> fontInfos = [];
         HashSet<string> HasTrueBoldOrItalicRecord = [];
 
+        _logger?.ZLogInformation($"开始扫描分析 {dir} 中的有效字体文件");
+        _logger?.ZLogInformation($"支持的字体后缀名为：{string.Join(", ", supportFonts)}");
+        _stopwatch.Start();
+
         foreach (string f in Directory.GetFiles(dir))
         {
             if (supportFonts.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
             {
+                _logger?.ZLogInformation($"{f}");
                 var fp = new FontParse(f);
                 if (!fp.Open()) { throw new FormatException(); };
                 for (uint i = 0; i < fp.GetNumFonts(); i++)
@@ -110,7 +81,12 @@ public class SubsetByPyFT
                 }
             }
         }
-
+        _stopwatch.Stop();
+        var pass1 = _stopwatch.ElapsedMilliseconds;
+        _logger?.ZLogDebug($"初次扫描和解析完成，用时 {pass1} ms");
+        //_stopwatch.Reset();
+        _logger?.ZLogDebug($"开始分析记录可能有多种变体的 fontfamily");
+        _stopwatch.Restart();
         for (var i = 0; i < fontInfos.Count; i++)
         {
             var info = fontInfos[i];
@@ -120,6 +96,7 @@ public class SubsetByPyFT
                 {
                     info.MaybeHasTrueBoldOrItalic = true;
                     fontInfos[i] = info;
+                    _logger?.ZLogDebug($"{info.FileName} 中的 {info.FamilyName} 检测到其他变体");
                 }
                 else
                 {
@@ -129,16 +106,64 @@ public class SubsetByPyFT
                     {
                         info.MaybeHasTrueBoldOrItalic = true;
                         fontInfos[i] = info;
+                        _logger?.ZLogDebug($"{info.FileName} 中的 {info.FamilyName} 未检测到，但可能具有其他变体");
                     }
                 }
             }
         }
+        _stopwatch.Stop();
+        _logger?.ZLogDebug($"变体分析完成，用时 {_stopwatch.ElapsedMilliseconds} ms");
+        _logger?.ZLogInformation($"字体文件扫描完成，用时 {pass1 + _stopwatch.ElapsedMilliseconds} ms");
+        _stopwatch.Reset();
 
         return fontInfos;
     }
 
-    static Dictionary<string, List<SubsetFont>> GetSubsetFonts(List<FontInfo> fontInfos, Dictionary<AssFontInfo, List<Rune>> assFonts, out Dictionary<FontInfo, List<AssFontInfo>> fontMap)
+    Dictionary<AssFontInfo, List<Rune>> GetAssFontInfoFromFiles(FileInfo[] assFiles, string optDir, out Dictionary<string, AssData> assDataWithOutputName)
     {
+        assDataWithOutputName = [];
+        Dictionary<AssFontInfo, List<Rune>> multiAssFonts = [];
+
+        _logger?.ZLogInformation($"开始提取输入 ass 的字体信息");
+        _stopwatch.Start();
+
+        foreach (var assFile in assFiles)
+        {
+            _logger?.ZLogInformation($"{assFile.FullName}");
+            var assFileNew = Path.Combine(optDir, assFile.Name);
+            var assFonts = AssFont.GetAssFonts(assFile.FullName, out var ass);
+            
+            foreach (var kv in assFonts)
+            {
+                if (multiAssFonts.Count > 0 && multiAssFonts.TryGetValue(kv.Key, out List<Rune>? value))
+                {
+                    value.AddRange(kv.Value);
+                }
+                else
+                {
+                    multiAssFonts.Add(kv.Key, kv.Value);
+                }
+            }
+            assDataWithOutputName.Add(assFileNew, ass);
+        }
+
+        foreach (var kv in multiAssFonts)
+        {
+            multiAssFonts[kv.Key] = kv.Value.Distinct().ToList();
+        }
+
+        _stopwatch.Stop();
+        _logger?.ZLogInformation($"ass 字体信息提取完成，用时 {_stopwatch.ElapsedMilliseconds} ms");
+        _stopwatch.Reset();
+        return multiAssFonts;
+    }
+
+    Dictionary<string, List<SubsetFont>> GetSubsetFonts(List<FontInfo> fontInfos, Dictionary<AssFontInfo, List<Rune>> assFonts, out Dictionary<FontInfo, List<AssFontInfo>> fontMap)
+    {
+        _logger?.ZLogInformation($"开始生成子集字体信息");
+        _stopwatch.Start();
+
+        _logger?.ZLogDebug($"开始对字体文件信息与 ass 定义的字体进行匹配");
         fontMap = [];
         List<AssFontInfo> matchedAssFontInfos = [];
         foreach (FontInfo fontInfo in fontInfos)
@@ -154,9 +179,11 @@ public class SubsetByPyFT
                     fontMap[fontInfo].Add(assFont.Key);
 
                     matchedAssFontInfos.Add(assFont.Key);
+                    _logger?.ZLogDebug($"{assFont.Key.ToString()} 匹配到了 {fontInfo.FileName} 的索引 {fontInfo.Index}");
                 }
             }
         }
+        _logger?.ZLogDebug($"匹配完成");
 
         if (matchedAssFontInfos.Count != assFonts.Keys.Count)
         {
@@ -164,6 +191,7 @@ public class SubsetByPyFT
             throw new Exception($"Not found font file: {string.Join("、", NotFound.Select(x => x.ToString()))}");
         }
 
+        _logger?.ZLogDebug($"开始把字体文件信息转换为子集字体信息");
         //List<SubsetFont> subsetFonts = [];
         Dictionary<string, List<SubsetFont>> subsetFonts = [];
         foreach (var kv in fontMap)
@@ -177,6 +205,11 @@ public class SubsetByPyFT
             }
             subsetFonts[kv.Key.FamilyName].Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, runes));
         }
+        _logger?.ZLogDebug($"转换完成");
+
+        _stopwatch.Stop();
+        _logger?.ZLogInformation($"处理完成，用时 {_stopwatch.ElapsedMilliseconds} ms");
+        _stopwatch.Reset();
         return subsetFonts;
     }
 

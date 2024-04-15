@@ -1,6 +1,8 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Text;
 using System.Xml;
+using ZLogger;
 
 namespace AssFontSubset.Core;
 
@@ -10,11 +12,14 @@ public struct SubsetConfig
     public bool DebugMode;
 }
 
-public class PyFontTools(string pyftsubset, string ttx)
+public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 {
     private readonly string _pyftsubset = pyftsubset;
     private readonly string _ttx = ttx;
+    private readonly ILogger? _logger = logger;
     public SubsetConfig Config;
+    public Stopwatch? sw;
+    private long timer;
 
     public void SubsetFonts(List<SubsetFont> subsetFonts, string outputFolder)
     {
@@ -39,7 +44,9 @@ public class PyFontTools(string pyftsubset, string ttx)
 
     public void SubsetFonts(Dictionary<string, List<SubsetFont>> subsetFonts, string outputFolder, out Dictionary<string, string> nameMap)
     {
+        _logger?.ZLogInformation($"开始字体子集化");
         nameMap = [];
+        _logger?.ZLogDebug($"生成随机不重复的字体名");
         var randoms = SubsetFont.GenerateRandomStrings(8, subsetFonts.Keys.Count);
 
         var i = 0;
@@ -49,10 +56,13 @@ public class PyFontTools(string pyftsubset, string ttx)
             foreach (var subsetFont in kv.Value)
             {
                 subsetFont.RandomNewName = randoms[i];
+                _logger?.ZLogInformation($"开始子集化 {subsetFont.OriginalFontFile.Name}");
+                timer = 0;
                 CreateFontSubset(subsetFont, outputFolder);
                 DumpFont(subsetFont);
                 ChangeXmlFontName(subsetFont);
                 CompileFont(subsetFont);
+                _logger?.ZLogInformation($"子集化完成，用时 {timer} ms");
 
                 if (!Config.DebugMode)
                 {
@@ -94,18 +104,20 @@ public class PyFontTools(string pyftsubset, string ttx)
         ssf.WriteRunesToUtf8File();
 
         var subsetCmd = GetSubsetCmd(ssf);
-        ExecuteCmd(subsetCmd, Config.DebugMode);
+        ExecuteCmd(subsetCmd);
     }
 
-    public void DumpFont(SubsetFont ssf) => ExecuteCmd(GetDumpFontCmd(ssf), Config.DebugMode);
+    public void DumpFont(SubsetFont ssf) => ExecuteCmd(GetDumpFontCmd(ssf));
 
-    private void CompileFont(SubsetFont ssf) => ExecuteCmd(GetCompileFontCmd(ssf), Config.DebugMode);
+    private void CompileFont(SubsetFont ssf) => ExecuteCmd(GetCompileFontCmd(ssf));
 
     private void DeleteTempFiles(SubsetFont ssf)
     {
+        _logger?.ZLogDebug($"开始清理相关临时文件：{Environment.NewLine}临时子集字体：{ssf.SubsetFontFileTemp}{Environment.NewLine}临时 ttx 文件：{ssf.SubsetFontTtxTemp}{Environment.NewLine}子集字符文件：{ssf.CharactersFile}");
         File.Delete(ssf.SubsetFontFileTemp!);
         File.Delete(ssf.SubsetFontTtxTemp!);
         File.Delete(ssf.CharactersFile!);
+        _logger?.ZLogDebug($"清理完成");
     }
 
     private void ChangeXmlFontName(SubsetFont font)
@@ -191,45 +203,47 @@ public class PyFontTools(string pyftsubset, string ttx)
     }
 
 
-    private static void ExecuteCmd(ProcessStartInfo startInfo, bool printCmd)
+    private void ExecuteCmd(ProcessStartInfo startInfo)
     {
+        sw ??= new Stopwatch();
         var success = true;
+        sw.Start();
         using var process = Process.Start(startInfo);
+        _logger?.ZLogDebug($"开始执行：{Environment.NewLine}{startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
+
         if (process != null)
         {
             var output = process.StandardOutput.ReadToEnd();
             var errorOutput = process.StandardError.ReadToEnd();
 
-            if (printCmd) { 
-                Console.WriteLine($"{startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
-                Console.WriteLine($"正在执行");
-            }
-
+            _logger?.ZLogDebug($"正在执行");
             process.WaitForExit();
             var exitCode = process.ExitCode;
+            sw.Stop();
 
             if (exitCode != 0)
             {
-                Console.WriteLine("Running command: " + startInfo.Arguments);
-                Console.WriteLine("Process failed with exit code: " + exitCode);
-                Console.WriteLine("Error Output: " + errorOutput);
+                _logger?.ZLogError($"执行返回 {exitCode}，错误输出: {errorOutput}");
                 success = false;
             }
             else
             {
-                if (printCmd) { Console.WriteLine($"执行成功"); }
-                return;
+                _logger?.ZLogDebug($"执行成功，用时 {sw.ElapsedMilliseconds} ms");
             }
+            timer += sw.ElapsedMilliseconds;
         }
         else
         {
             success = false;
+            _logger?.ZLogDebug($"进程未启动");
         }
 
+        sw.Reset();
         if (!success)
         {
             throw new Exception($"命令执行失败：{startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
         }
+        else { return; }
 
         //return success;
     }
