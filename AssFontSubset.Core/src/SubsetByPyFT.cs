@@ -94,7 +94,7 @@ public class SubsetByPyFT
 
     static List<FontInfo> GetFontInfoFromFiles(string dir)
     {
-        string[] supportFonts = [".ttf", ".otf", ".ttc"];
+        string[] supportFonts = [".ttf", ".otf", ".ttc", "otc"];
         List<FontInfo> fontInfos = [];
         HashSet<string> HasTrueBoldOrItalicRecord = [];
 
