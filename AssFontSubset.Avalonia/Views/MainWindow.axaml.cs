@@ -55,7 +55,13 @@ namespace AssFontSubset.Avalonia.Views
         {
             try
             {
-                SubsetByPyFT.Subset(path, fontPath, outputPath, binPath, sourceHanEllipsis, debug);
+                var subsetConfig = new SubsetConfig
+                {
+                    SourceHanEllipsis = sourceHanEllipsis,
+                    DebugMode = debug,
+                };
+                var ssFt = new SubsetByPyFT();
+                ssFt.Subset(path, fontPath, outputPath, binPath, subsetConfig);
                 await ShowMessageBox("Sucess", "子集化完成，请检查 output 文件夹");
             }
             catch (Exception ex)
