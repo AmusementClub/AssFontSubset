@@ -1,0 +1,65 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AssFontSubset.Avalonia.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="450"
+        Width="1000" Height="450" CanResize="False"
+        x:Class="AssFontSubset.Avalonia.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="{Binding WindowTitle}">
+
+  <Grid>
+    <DockPanel LastChildFill="True">
+      <TabControl x:Name="tabControl">
+
+        <TabItem Header="子集化" x:Name="m_SubsetTab" >
+          <Grid Margin="10" x:Name="m_SubsetPage" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ColumnDefinitions="15*,75*,10*" RowDefinitions="34*,12*,12*,34*,8*">
+
+            <TextBlock Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" Text="字幕文件" />
+            <TextBlock Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" Text="字体目录" />
+            <TextBlock Grid.Row="2" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" Text="输出目录" />
+
+            <Button x:Name="Clear" Grid.Row="0" Grid.Column="3" Content="清&#xa;&#xa;空" Margin="5"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="Clear_Click" FontSize="18" />
+
+            <ListBox x:Name="AssFileList" Grid.Row="0" Grid.Column="1" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto" DragDrop.AllowDrop="True"/>
+            <TextBox x:Name="FontFolder" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Center" DragDrop.AllowDrop="True"
+                       />
+            <TextBox x:Name="OutputFolder" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Center" DragDrop.AllowDrop="True" />
+
+            <Button x:Name="Start" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Content="开 始" Margin="5,5,5,10"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="Start_Click" FontSize="40" />
+
+            <StackPanel Grid.Row="3" Margin="9,0" >
+              <CheckBox x:Name="SourceHanEllipsis" Content="居中思源省略号" FontSize="12" IsChecked="True" ToolTip.Tip="默认：打开。&#x0a;A special hack. 打开后，思源黑体和宋体的省略号会被居中对齐。"/>
+              <CheckBox x:Name="Debug" Content="调试选项" FontSize="12" IsChecked="False" ToolTip.Tip="默认：关闭。&#x0a;打开后会保留各种临时文件，用于检查字体名字等在各个阶段是否正确。"/>
+              <!--<CheckBox x:Name="CloudList" Content="使用云跳过列表" FontSize="12" IsChecked="True" ToolTip.Tip="默认：打开。&#x0a;打开后会尝试读取 GitHub 上已判明子集化后会出现问题的字体列表，并将其跳过不进行处理。&#x0a;使用此功能必须可以连接到 GitHub。"/>
+              <CheckBox x:Name="LocalList" Content="使用本地跳过列表" FontSize="12" IsChecked="True" ToolTip.Tip="默认：打开。&#x0a;打开后会尝试读取 exe 同目录下的 skiplist.txt。&#x0a;请将想要跳过不进行子集化处理的字体名以 UTF-8 编码写入此文件中，不同字体名按换行分割。"/>-->
+            </StackPanel>
+
+            <ProgressBar x:Name="Progressing" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="5,0,5,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Minimum="0" Maximum="10" />
+
+          </Grid>
+        </TabItem>
+
+        <!--<TabItem Header="进程列表" x:Name="m_ProcessListTab">
+          <Grid Margin="10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <ListBox x:Name="ProcessList"  Margin="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="wait"  />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </TabItem>-->
+
+      </TabControl>
+    </DockPanel>
+
+  </Grid>
+
+
+</Window>
