@@ -1,5 +1,7 @@
 ﻿using AssFontSubset.Core;
 using System.CommandLine;
+using Microsoft.Extensions.Logging;
+using ZLogger;
 
 namespace AssFontSubset.Console;
 
@@ -19,8 +21,49 @@ internal class Program
             path, fontPath, outputPath, binPath, sourceHanEllipsis, debug
         };
 
-        rootCommand.SetHandler(SubsetByPyFT.Subset, path, fontPath, outputPath, binPath, sourceHanEllipsis, debug);
+        rootCommand.SetHandler(Subset, path, fontPath, outputPath, binPath, sourceHanEllipsis, debug);
 
         return await rootCommand.InvokeAsync(args);
+    }
+
+    static void Subset(FileInfo[] path, DirectoryInfo? fontPath, DirectoryInfo? outputPath, DirectoryInfo? binPath, bool sourceHanEllipsis, bool debug)
+    {
+        var subsetConfig = new SubsetConfig
+        {
+            SourceHanEllipsis = sourceHanEllipsis,
+            DebugMode = debug,
+        };
+        var logLevel = debug ? LogLevel.Debug : LogLevel.Information;
+
+        using var factory = LoggerFactory.Create(logging =>
+        {
+            logging.SetMinimumLevel(logLevel);
+            logging.AddZLoggerConsole(options =>
+            {
+                options.UsePlainTextFormatter(formatter =>
+                {
+                    formatter.SetPrefixFormatter($"{0}{1:yyyy-MM-dd'T'HH:mm:sszzz}|{2:short}|", (in MessageTemplate template, in LogInfo info) => 
+                    {
+                        // \u001b[31m => Red(ANSI Escape Code)
+                        // \u001b[0m => Reset
+                        var escapeSequence = info.LogLevel >= LogLevel.Error? "\u001b[31m" : "\u001b[0m";
+                        template.Format(escapeSequence, info.Timestamp, info.LogLevel);
+                    });
+                    
+                });
+            });
+        });
+        var logger = factory.CreateLogger("AssFontSubset.Console");
+
+        var ssFt = new SubsetByPyFT(logger);
+        try
+        {
+            ssFt.Subset(path, fontPath, outputPath, binPath, subsetConfig);
+        }
+        catch (Exception ex) 
+        {
+            logger.ZLogError($"{ex.Message}"); 
+            Environment.Exit(1);
+        };
     }
 }
