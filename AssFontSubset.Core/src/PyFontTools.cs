@@ -84,13 +84,11 @@ public class PyFontTools(string pyftsubset, string ttx)
         }
 
         var outputFileWithoutSuffix = Path.GetFileNameWithoutExtension(ssf.OriginalFontFile.Name);
-        var outputFileSuffix = ssf.TrackIndex > 0 ? ".ttf" : ssf.OriginalFontFile.Extension;
         var outputFIleMain = $"{outputFileWithoutSuffix}.{ssf.TrackIndex}.{ssf.RandomNewName}";
 
-        ssf.CharactersFile = Path.Combine(outputFolder, $"{outputFIleMain}{outputFileSuffix}.txt");
-        ssf.SubsetFontFileTemp = Path.Combine(outputFolder, $"{outputFIleMain}{outputFileSuffix}._tmp_");
+        ssf.CharactersFile = Path.Combine(outputFolder, $"{outputFIleMain}.txt");
+        ssf.SubsetFontFileTemp = Path.Combine(outputFolder, $"{outputFIleMain}._tmp_");
         ssf.SubsetFontTtxTemp = Path.Combine(outputFolder, $"{outputFIleMain}.ttx");
-        ssf.SubsetFontFile = Path.Combine(outputFolder, $"{outputFIleMain}{outputFileSuffix}");
 
         ssf.Preprocessing();
         ssf.WriteRunesToUtf8File();

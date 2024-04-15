@@ -29,7 +29,7 @@ public class SubsetFont(FileInfo originalFontFile, uint index, List<Rune> runes)
     public string? CharactersFile;
     public string? SubsetFontFileTemp;
     public string? SubsetFontTtxTemp;
-    public string? SubsetFontFile;
+    //public string? SubsetFontFile;
 
     public override int GetHashCode() => HashCode.Combine(_originalFontFile.Name, TrackIndex);
 
