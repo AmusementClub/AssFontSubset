@@ -12,7 +12,7 @@ public class SubsetByPyFT(ILogger? logger = null)
     private readonly ILogger? _logger = logger;
     private static readonly Stopwatch _stopwatch = new();
 
-    public void Subset(FileInfo[] path, DirectoryInfo? fontPath, DirectoryInfo? outputPath, DirectoryInfo? binPath, SubsetConfig subsetConfig)
+    public async Task SubsetAsync(FileInfo[] path, DirectoryInfo? fontPath, DirectoryInfo? outputPath, DirectoryInfo? binPath, SubsetConfig subsetConfig)
     {
         var baseDir = path[0].Directory!.FullName;
         fontPath ??= new DirectoryInfo(Path.Combine(baseDir, "fonts"));
@@ -32,18 +32,20 @@ public class SubsetByPyFT(ILogger? logger = null)
         var fontDir = fontPath.FullName;
         var optDir = outputPath.FullName;
 
-        var fontInfos = GetFontInfoFromFiles(fontDir);
-        var pyFT = new PyFontTools(pyftsubset, ttx, _logger) { Config = subsetConfig, sw = _stopwatch };
-        var assFonts = GetAssFontInfoFromFiles(path, optDir, out var assMulti);
-        var subsetFonts = GetSubsetFonts(fontInfos, assFonts, out var fontMap);
-        pyFT.SubsetFonts(subsetFonts, optDir, out var nameMap);
-
-        foreach (var kv in assMulti)
+        await Task.Run(() =>
         {
-            ChangeAssFontName(kv.Value, nameMap, fontMap);
-            kv.Value.WriteAssFile(kv.Key);
-        }
+            var fontInfos = GetFontInfoFromFiles(fontDir);
+            var pyFT = new PyFontTools(pyftsubset, ttx, _logger) { Config = subsetConfig, sw = _stopwatch };
+            var assFonts = GetAssFontInfoFromFiles(path, optDir, out var assMulti);
+            var subsetFonts = GetSubsetFonts(fontInfos, assFonts, out var fontMap);
+            pyFT.SubsetFonts(subsetFonts, optDir, out var nameMap);
 
+            foreach (var kv in assMulti)
+            {
+                ChangeAssFontName(kv.Value, nameMap, fontMap);
+                kv.Value.WriteAssFile(kv.Key);
+            }
+        });
     }
 
     static void GetFontInfo(string fontFile)
@@ -106,7 +108,7 @@ public class SubsetByPyFT(ILogger? logger = null)
                     {
                         info.MaybeHasTrueBoldOrItalic = true;
                         fontInfos[i] = info;
-                        _logger?.ZLogDebug($"{info.FileName} 中的 {info.FamilyName} 未检测到，但可能具有其他变体");
+                        _logger?.ZLogDebug($"{info.FileName} 中的 {info.FamilyName} 未在现有字体中检测到其他变体");
                     }
                 }
             }

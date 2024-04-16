@@ -69,19 +69,6 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
                     DeleteTempFiles(subsetFont);
                 }
             }
-            //Parallel.ForEach(kv.Value, subsetFont =>
-            //{
-            //    subsetFont.RandomNewName = randoms[i];
-            //    CreateFontSubset(subsetFont, outputFolder);
-            //    DumpFont(subsetFont);
-            //    ChangeXmlFontName(subsetFont);
-            //    CompileFont(subsetFont);
-
-            //    if (!Config.KeepTempFiles)
-            //    {
-            //        DeleteTempFiles(subsetFont);
-            //    }
-            //});
             i++;
         }
     }
@@ -209,7 +196,7 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
         var success = true;
         sw.Start();
         using var process = Process.Start(startInfo);
-        _logger?.ZLogDebug($"开始执行：{Environment.NewLine}{startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
+        _logger?.ZLogDebug($"开始执行：{startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
 
         if (process != null)
         {
