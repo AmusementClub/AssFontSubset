@@ -11,14 +11,17 @@ using MsBox.Avalonia.Enums;
 using MsBox.Avalonia;
 using System.Threading.Tasks;
 using MsBox.Avalonia.Base;
+using System.ComponentModel;
+using AssFontSubset.Avalonia.ViewModels;
 
 namespace AssFontSubset.Avalonia.Views
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = new MainWindowViewModel();
             AddHandler(DragDrop.DropEvent, Window_Drop);
         }
 
@@ -36,7 +39,7 @@ namespace AssFontSubset.Avalonia.Views
 
             if (AssFileList.Items.Count == 0)
             {
-                _ = ShowMessageBox("Error", "没有 ASS 文件可供处理，请检查");
+                await ShowMessageBox("Error", "没有 ASS 文件可供处理，请检查");
                 return;
             }
             var path = new FileInfo[AssFileList.Items.Count];
@@ -60,12 +63,15 @@ namespace AssFontSubset.Avalonia.Views
                     SourceHanEllipsis = sourceHanEllipsis,
                     DebugMode = debug,
                 };
+                Progressing.IsIndeterminate = true;
                 var ssFt = new SubsetByPyFT();
-                ssFt.Subset(path, fontPath, outputPath, binPath, subsetConfig);
+                await ssFt.SubsetAsync(path, fontPath, outputPath, binPath, subsetConfig);
+                Progressing.IsIndeterminate = false;
                 await ShowMessageBox("Sucess", "子集化完成，请检查 output 文件夹");
             }
             catch (Exception ex)
             {
+                Progressing.IsIndeterminate = false;
                 await ShowMessageBox("Error", ex.Message);
             }
         }
@@ -84,7 +90,7 @@ namespace AssFontSubset.Avalonia.Views
                 return;
             }
 
-            AssFileList.ItemsSource = validFiles.Select(f => f.Path.LocalPath).ToList();
+            AssFileList.ItemsSource = validFiles.Select(f => f.Path.LocalPath).Order().ToList();
             var dir = validFiles[0].GetParentAsync().Result;
             FontFolder.Text = Path.Combine(dir!.Path.LocalPath, "fonts");
             OutputFolder.Text = Path.Combine(dir!.Path.LocalPath, "output");
