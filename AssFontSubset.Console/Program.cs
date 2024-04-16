@@ -58,7 +58,7 @@ internal class Program
         var ssFt = new SubsetByPyFT(logger);
         try
         {
-            ssFt.Subset(path, fontPath, outputPath, binPath, subsetConfig);
+            ssFt.SubsetAsync(path, fontPath, outputPath, binPath, subsetConfig).Wait();
         }
         catch (Exception ex) 
         {
