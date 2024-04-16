@@ -15,25 +15,40 @@ public class AssFont
 
     public static bool IsMatch(AssFontInfo afi, FontInfo fi)
     {
+        var boldMatch = false;
+        var italicMatch = false;
+
         var assFn = afi.Name.StartsWith('@') ? afi.Name.AsSpan(1) : afi.Name.AsSpan();
-        if ((assFn.SequenceEqual(fi.FamilyName.AsSpan()) || assFn.SequenceEqual(fi.FamilyNameChs.AsSpan()) )
-            && (afi.Italic == fi.Italic || ((afi.Italic == true && !fi.MaybeHasTrueBoldOrItalic)))
-            )
+        if ((assFn.SequenceEqual(fi.FamilyName.AsSpan()) || assFn.SequenceEqual(fi.FamilyNameChs.AsSpan())))
         {
             if (afi.Weight == 0)
             {
-                return !fi.Bold;
+                boldMatch = !fi.Bold;
             }
             else if (afi.Weight == 1)
             {
-                return !fi.MaybeHasTrueBoldOrItalic || fi.Bold;
+                boldMatch = !fi.MaybeHasTrueBoldOrItalic || fi.Bold;
             }
             else if (afi.Weight == fi.Weight)
             {
                 // Maybe wrong
-                return true;
+                boldMatch = true;
+            }
+
+            if (afi.Italic == fi.Italic)
+            {
+                italicMatch = true;
+            }
+            else if (afi.Italic == true && !fi.MaybeHasTrueBoldOrItalic)
+            {
+                italicMatch = true;
+            }
+            else if (afi.Italic == true && fi.MaybeHasTrueBoldOrItalic && fi.FamilyName != fi.FamilyNameChs)
+            {
+                italicMatch = true;
             }
         }
-        return false;
+
+        return boldMatch && italicMatch;
     }
 }
