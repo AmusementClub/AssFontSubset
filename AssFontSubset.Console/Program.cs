@@ -62,8 +62,9 @@ internal class Program
         }
         catch (Exception ex) 
         {
-            logger.ZLogError($"{ex.Message}"); 
-            Environment.Exit(1);
+            logger.ZLogError($"{ex.Message}");
+            logger.ZLogInformation($"Press Any key to exit");
+            System.Console.ReadKey();
         };
     }
 }
