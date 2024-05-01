@@ -10,6 +10,15 @@ public class AssFont
     {
         ass = new AssData();
         ass.ReadAssFile(file);
+
+        var usedStyles = GetUsedStyles(ass.Events.Collection);
+        var undefinedStyles = new HashSet<string>(usedStyles);
+        undefinedStyles.ExceptWith(ass.Styles.Names);
+        if (undefinedStyles.Count > 0)
+        {
+            throw new Exception($"以下样式未在 Styles 中定义：{string.Join(", ", undefinedStyles)}");
+        }
+
         return AssFontParse.GetUsedFontInfos(ass.Events.Collection, ass.Styles.Collection);
     }
 
@@ -50,5 +59,37 @@ public class AssFont
         }
 
         return boldMatch && italicMatch;
+    }
+
+    private static HashSet<string> GetUsedStyles(List<AssEvent> events)
+    {
+        var styles = new HashSet<string>();
+        var str = new StringBuilder();
+        foreach (var et in events)
+        {
+            if (et.IsDialogue)
+            {
+                var text = et.Text.ToArray();
+
+                styles.Add(et.Style);
+
+                char[] block = [];
+                for (var i = 0; i < text.Length; i++)
+                {
+                    block = text[i];
+                    if (block[0] == '{' && block[^1] == '}' && block.Length > 2 && i != text.Length - 1)
+                    {
+                        foreach (var ca in AssTagParse.GetTagsFromOvrBlock(block))
+                        {
+                            if (ca[0] == 'r' && ca.Length > 1 && ca.Length >= 3 && !ca.AsSpan()[..3].SequenceEqual("rnd".AsSpan()))
+                            {
+                                styles.Add(new string(ca[1..]));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return styles;
     }
 }
