@@ -15,7 +15,37 @@ public struct FontInfo
     public uint Index;
     public ushort MaxpNumGlyphs;
 
-    public override readonly int GetHashCode() => HashCode.Combine(FamilyName, FamilyNameChs, Bold, Italic, Weight, FileName, Index);
+    public override bool Equals(object? obj)
+    {
+        return obj is FontInfo info &&
+               FamilyName == info.FamilyName &&
+               FamilyNameChs == info.FamilyNameChs &&
+               Bold == info.Bold &&
+               Italic == info.Italic &&
+               Weight == info.Weight &&
+               MaybeHasTrueBoldOrItalic == info.MaybeHasTrueBoldOrItalic &&
+               FileName == info.FileName &&
+               Index == info.Index &&
+               MaxpNumGlyphs == info.MaxpNumGlyphs;
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        hash.Add(FamilyName);
+        hash.Add(FamilyNameChs);
+        hash.Add(Bold);
+        hash.Add(Italic);
+        hash.Add(Weight);
+        hash.Add(MaybeHasTrueBoldOrItalic);
+        hash.Add(FileName);
+        hash.Add(Index);
+        hash.Add(MaxpNumGlyphs);
+        return hash.ToHashCode();
+    }
+
+    public static bool operator ==(FontInfo lhs, FontInfo rhs) => lhs.Equals(rhs);
+    public static bool operator !=(FontInfo lhs, FontInfo rhs) => !lhs.Equals(rhs);
 }
 
 public class FontParse(string fontFile)
