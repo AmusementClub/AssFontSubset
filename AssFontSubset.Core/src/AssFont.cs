@@ -36,7 +36,7 @@ public class AssFont
             }
             else if (afi.Weight == 1)
             {
-                boldMatch = !fi.MaybeHasTrueBoldOrItalic || fi.Bold;
+                boldMatch = fi.Bold || (!fi.MaybeHasTrueBoldOrItalic && !fi.Bold && !fi.Italic);
             }
             else if (afi.Weight == fi.Weight)
             {
@@ -48,7 +48,7 @@ public class AssFont
             {
                 italicMatch = true;
             }
-            else if (afi.Italic == true && !fi.MaybeHasTrueBoldOrItalic)
+            else if (afi.Italic == true && (!fi.MaybeHasTrueBoldOrItalic && !fi.Bold && !fi.Italic))
             {
                 italicMatch = true;
             }
