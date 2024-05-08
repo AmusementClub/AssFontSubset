@@ -1,0 +1,91 @@
+name: afs.cmd
+
+on:
+  push:
+    branches: [ "afs-nt" ]
+    paths:
+    - 'AssFontSubset.Core/**.cs'
+    - 'AssFontSubset.Core/**.csproj'
+    - 'AssFontSubset.Console/**.cs'
+    - 'AssFontSubset.Console/**.csproj'
+  pull_request:
+    branches: [ "afs-nt" ]
+    paths:
+    - 'AssFontSubset.Core/**.cs'
+    - 'AssFontSubset.Core/**.csproj'
+    - 'AssFontSubset.Console/**.cs'
+    - 'AssFontSubset.Console/**.csproj'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        env:
+          - os: windows-latest
+            identifier: win
+          - os: macos-latest
+            identifier: osx
+          - os: ubuntu-latest
+            identifier: linux
+        arch: ['x64', 'arm64']
+        dotnet_version: ['8.x']
+
+    name: build-${{ matrix.env.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.env.os }}
+
+    steps:
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ matrix.dotnet_version }}
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Test
+      run: |
+        dotnet --version
+        cd ./AssFontSubset.CoreTests
+        dotnet restore
+        dotnet test
+        cd ..
+
+    - name: Install linux arm64 prereqs
+      # copy from https://github.com/dn-vm/dnvm
+      if: matrix.env.identifier == 'linux' && matrix.arch == 'arm64'
+      run: |
+        sudo dpkg --add-architecture arm64
+        sudo bash -c 'cat > /etc/apt/sources.list.d/arm64.list <<EOF
+        deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy main restricted ports
+        deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-updates main restricted
+        deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-backports main restricted universe multiverse
+        EOF'
+        sudo sed -i -e 's/deb http/deb [arch=amd64] http/g' /etc/apt/sources.list
+        sudo sed -i -e 's/deb mirror/deb [arch=amd64] mirror/g' /etc/apt/sources.list
+        sudo apt update
+        sudo apt install -y clang llvm binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu zlib1g-dev:arm64
+
+    - name: Change to afs.cmd and Publish
+      run: |
+        cd ./AssFontSubset.Console
+        dotnet restore
+        dotnet publish -c Release -r "${{ matrix.env.identifier }}-${{ matrix.arch }}" /p:PublishAot=true
+        cd ..
+
+    - name: Set short version
+      shell: bash
+      run: |
+          ver_short=`git rev-parse --short HEAD`
+          echo "VERSION=$ver_short" >> $GITHUB_ENV
+
+    - name: Upload exe files
+      uses: actions/upload-artifact@v4
+      with:
+        name: AssFontSubset.Console-${{ matrix.env.identifier }}-${{ matrix.arch }}-${{ env.VERSION }}
+        path: |
+          AssFontSubset.Console/bin/Release/net8.0/${{ matrix.env.identifier }}-${{ matrix.arch }}/publish/
+          !AssFontSubset.Console/bin/Release/net8.0/${{ matrix.env.identifier }}-${{ matrix.arch }}/publish/*.pdb
+          !AssFontSubset.Console/bin/Release/net8.0/${{ matrix.env.identifier }}-${{ matrix.arch }}/publish/*.dbg
+          !AssFontSubset.Console/bin/Release/net8.0/${{ matrix.env.identifier }}-${{ matrix.arch }}/publish/*.dwarf
+          !AssFontSubset.Console/bin/Release/net8.0/${{ matrix.env.identifier }}-${{ matrix.arch }}/publish/*.dsym
