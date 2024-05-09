@@ -116,8 +116,6 @@ public class FontParse(string fontFile)
     public static Dictionary<string, string> GetFontInfo(OTFont font)
     {
         var nameTable = (Table_name)font.GetTable("name")!;
-
-        var psName = nameTable.GetString((ushort)Table_name.PlatformID.Windows, 0xffff, (ushort)LanguageIDWindows.en_US, (ushort)NameID.postScriptName);
         //var fullName = nameTable.GetString
 
         var ids = new Dictionary<string, GetStringParams>
@@ -179,7 +177,7 @@ public class FontParse(string fontFile)
             foreach (var kv in ids)
             {
                 if ((nr.PlatformID == (ushort)Table_name.PlatformID.Windows) &&
-                (kv.Value.EncID == 0xffff || nr.EncodingID == kv.Value.EncID) &&
+                ((kv.Value.EncID == 0xffff || nr.EncodingID == kv.Value.EncID) && nr.EncodingID != (ushort)EncodingIDWindows.Unicode_full_repertoire) &&
                 (kv.Value.LangID == 0xffff || nr.LanguageID == kv.Value.LangID) &&
                 nr.NameID == kv.Value.NameID)
                 {
