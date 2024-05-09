@@ -82,7 +82,7 @@ jobs:
     - name: Upload exe files
       uses: actions/upload-artifact@v4
       with:
-        name: AssFontSubset.Console-${{ matrix.env.identifier }}-${{ matrix.arch }}-${{ env.VERSION }}
+        name: AssFontSubset.Console_g${{ env.VERSION }}_${{ matrix.env.identifier }}-${{ matrix.arch }}
         path: |
           AssFontSubset.Console/bin/Release/net8.0/${{ matrix.env.identifier }}-${{ matrix.arch }}/publish/
           !AssFontSubset.Console/bin/Release/net8.0/${{ matrix.env.identifier }}-${{ matrix.arch }}/publish/*.pdb
