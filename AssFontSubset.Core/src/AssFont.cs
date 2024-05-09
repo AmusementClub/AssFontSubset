@@ -1,4 +1,5 @@
-﻿using Mobsub.SubtitleParse;
+﻿using Microsoft.Extensions.Logging;
+using Mobsub.SubtitleParse;
 using Mobsub.SubtitleParse.AssTypes;
 using System.Text;
 
@@ -6,9 +7,9 @@ namespace AssFontSubset.Core;
 
 public class AssFont
 {
-    public static Dictionary<AssFontInfo, List<Rune>> GetAssFonts(string file, out AssData ass)
+    public static Dictionary<AssFontInfo, List<Rune>> GetAssFonts(string file, out AssData ass, ILogger? logger = null)
     {
-        ass = new AssData();
+        ass = new AssData(logger);
         ass.ReadAssFile(file);
 
         var usedStyles = GetUsedStyles(ass.Events.Collection);

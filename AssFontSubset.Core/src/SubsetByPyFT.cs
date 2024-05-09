@@ -131,9 +131,9 @@ public class SubsetByPyFT(ILogger? logger = null)
 
         foreach (var assFile in assFiles)
         {
-            _logger?.ZLogInformation($"{assFile.FullName}");
+            //_logger?.ZLogInformation($"{assFile.FullName}");
             var assFileNew = Path.Combine(optDir, assFile.Name);
-            var assFonts = AssFont.GetAssFonts(assFile.FullName, out var ass);
+            var assFonts = AssFont.GetAssFonts(assFile.FullName, out var ass, _logger);
             
             foreach (var kv in assFonts)
             {

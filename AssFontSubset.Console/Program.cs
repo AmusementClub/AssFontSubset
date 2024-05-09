@@ -46,7 +46,13 @@ internal class Program
                     {
                         // \u001b[31m => Red(ANSI Escape Code)
                         // \u001b[0m => Reset
-                        var escapeSequence = info.LogLevel >= LogLevel.Error? "\u001b[31m" : "\u001b[0m";
+                        var escapeSequence = info.LogLevel switch
+                        {
+                            LogLevel.Warning => "\u001b[33m",
+                            > LogLevel.Warning => "\u001b[31m",
+                            _ => "\u001b[0m",
+                        };
+
                         template.Format(escapeSequence, info.Timestamp, info.LogLevel);
                     });
                     

@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AssFontSubset.Core", "AssFo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AssFontSubset.Avalonia", "AssFontSubset.Avalonia\AssFontSubset.Avalonia.csproj", "{228541CF-C1A6-48C5-8B60-95538E049C25}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AssFontSubset.Core.Tests", "AssFontSubset.CoreTests\AssFontSubset.Core.Tests.csproj", "{E003AA3B-7C95-4FA3-AB7D-529B71BBD85D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AssFontSubset.Core.Tests", "AssFontSubset.CoreTests\AssFontSubset.Core.Tests.csproj", "{E003AA3B-7C95-4FA3-AB7D-529B71BBD85D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
