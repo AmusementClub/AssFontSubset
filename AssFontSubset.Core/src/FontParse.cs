@@ -7,10 +7,11 @@ public struct FontInfo
 {
     public string FamilyName;
     public string FamilyNameChs;
+    //public bool Regular;
     public bool Bold;
     public bool Italic;
     public int Weight;
-    public bool MaybeHasTrueBoldOrItalic;
+    //public bool MaybeHasTrueBoldOrItalic;
     public string FileName;
     public uint Index;
     public ushort MaxpNumGlyphs;
@@ -20,10 +21,11 @@ public struct FontInfo
         return obj is FontInfo info &&
                FamilyName == info.FamilyName &&
                FamilyNameChs == info.FamilyNameChs &&
+               //Regular == info.Regular &&
                Bold == info.Bold &&
                Italic == info.Italic &&
                Weight == info.Weight &&
-               MaybeHasTrueBoldOrItalic == info.MaybeHasTrueBoldOrItalic &&
+               //MaybeHasTrueBoldOrItalic == info.MaybeHasTrueBoldOrItalic &&
                FileName == info.FileName &&
                Index == info.Index &&
                MaxpNumGlyphs == info.MaxpNumGlyphs;
@@ -34,10 +36,11 @@ public struct FontInfo
         HashCode hash = new HashCode();
         hash.Add(FamilyName);
         hash.Add(FamilyNameChs);
+        //hash.Add(Regular);
         hash.Add(Bold);
         hash.Add(Italic);
         hash.Add(Weight);
-        hash.Add(MaybeHasTrueBoldOrItalic);
+        //hash.Add(MaybeHasTrueBoldOrItalic);
         hash.Add(FileName);
         hash.Add(Index);
         hash.Add(MaxpNumGlyphs);
@@ -58,96 +61,52 @@ public class FontParse(string fontFile)
     public uint GetNumFonts() => FontData.GetNumFonts();
     public OTFont GetFont(uint index) => FontData.GetFont(index)!;
 
-    public FontInfo GetFontInfo(uint index, HashSet<string>? trueRecord = null)
+    public FontInfo GetFontInfo(uint index)
     {
         var font = GetFont(index);
-        var infoFileBased = GetFontInfo(font);
 
-        var familyName = infoFileBased["family_name"];
-        var weight = int.Parse(infoFileBased["weight"]);
-
-        if (!infoFileBased.TryGetValue("family_name_loc", out var familyNameLoc))
-        {
-            familyNameLoc = familyName;
-        }
-
-        var infoAssLike = new FontInfo()
-        {
-            FamilyName = familyName,
-            FamilyNameChs = familyNameLoc,
-            Bold = false,
-            Italic = false,
-            Weight = weight,
-            MaybeHasTrueBoldOrItalic = false,
-            FileName = FontFile,
-            Index = index,
-            MaxpNumGlyphs = font.GetMaxpNumGlyphs(),
-        };
-
-        if (infoFileBased["subfamily_name"].Contains("Bold"))
-        {
-            // 600 DB maybe regular+bold
-            if (weight == 700 || weight == 600)
-            {
-                // maybe only sign style (such as morisawa), normal is DB/B/ED, hanyi use 75J/F/W/S
-                // UD Digi Kyokasho N-B maybe correct regular+bold
-                string[] boldIndicators = [" B", " DB", " EB", "75W", "75S", "75J", "75F"];
-                // but some morisawa fonts is weird, such as A-OTF Jun Pro 501, will exclude all
-                string[] excludedPrefixes = ["A-OTF", "A P-OTF", "G-OTF"];
-
-                if (!(boldIndicators.Any(familyName.EndsWith) || excludedPrefixes.Any(familyName.StartsWith)))
-                {
-                    infoAssLike.Bold = true;
-                    trueRecord?.Add(familyName);
-                }
-            }            
-        }
-
-        if (infoFileBased["subfamily_name"].Contains("Italic"))
-        {
-            infoAssLike.Italic = true;
-            trueRecord?.Add(familyName);
-        }
-
-        return infoAssLike;
-    }
-    public FontInfo GetFontInfo(uint index) => GetFontInfo(index, null);
-
-    public static Dictionary<string, string> GetFontInfo(OTFont font)
-    {
         var nameTable = (Table_name)font.GetTable("name")!;
-        //var fullName = nameTable.GetString
+        var os2Table = (Table_OS2)font.GetTable("OS/2")!;
+        var fsSel = os2Table.fsSelection;
 
         var ids = new Dictionary<string, GetStringParams>
         {
             { "postscript_name", new GetStringParams { EncID = 0xffff, LangID = (ushort)LanguageIDWindows.en_US, NameID = (ushort)NameID.postScriptName } },
-            { "full_name",       new GetStringParams { EncID = 0xffff, LangID = (ushort)LanguageIDWindows.en_US, NameID = (ushort)NameID.fullName } },
+            //{ "full_name",       new GetStringParams { EncID = 0xffff, LangID = (ushort)LanguageIDWindows.en_US, NameID = (ushort)NameID.fullName } },
             { "family_name",     new GetStringParams { EncID = 0xffff, LangID = (ushort)LanguageIDWindows.en_US, NameID = (ushort)NameID.familyName } },
             { "family_name_loc", new GetStringParams { EncID = 0xffff, LangID = (ushort)LanguageIDWindows.zh_Hans_CN, NameID = (ushort)NameID.familyName } },
-            { "subfamily_name",  new GetStringParams { EncID = 0xffff, LangID = (ushort)LanguageIDWindows.en_US, NameID = (ushort)NameID.subfamilyName } },
+            //{ "subfamily_name",  new GetStringParams { EncID = 0xffff, LangID = (ushort)LanguageIDWindows.en_US, NameID = (ushort)NameID.subfamilyName } },
         };
 
         var result = GetBuffers(nameTable, ids);
 
-        var stringDict = new Dictionary<string, string>();
+        var nameDict = new Dictionary<string, string>();
         foreach (var kv in result)
         {
             if (kv.Value.buf != null)
             {
                 var s = DecodeString(kv.Value.curPlatID, kv.Value.curEncID, kv.Value.curLangID, kv.Value.buf);
-                stringDict.Add(kv.Key, s!);
+                nameDict.Add(kv.Key, s!);
             }
         }
 
-        if (stringDict.Count > 0)
+        var familyName = nameDict["family_name"];
+        if (!nameDict.TryGetValue("family_name_loc", out var familyNameLoc)){ familyNameLoc = familyName; }
+        
+        return new FontInfo()
         {
-            var os2Table = (Table_OS2)font.GetTable("OS/2")!;
-            stringDict.Add("weight", os2Table.usWeightClass.ToString());
-        }
-
-        return stringDict;
+            FamilyName = familyName,
+            FamilyNameChs = familyNameLoc,
+            //Regular = ((fsSel & 0b_0100_0000) >> 6) == 1,   // bit 6
+            Bold = ((fsSel & 0b_0010_0000) >> 5) == 1,  // bit 5
+            Italic = (fsSel & 0b_1) == 1,   // bit 0
+            Weight = os2Table.usWeightClass,
+            //MaybeHasTrueBoldOrItalic = false,
+            FileName = FontFile,
+            Index = index,
+            MaxpNumGlyphs = font.GetMaxpNumGlyphs(),
+        };
     }
-
 
 
     private struct GetStringParams

@@ -48,18 +48,6 @@ public class SubsetByPyFT(ILogger? logger = null)
         });
     }
 
-    static void GetFontInfo(string fontFile)
-    {
-        var fp = new FontParse(fontFile);
-        if (!fp.Open()) { throw new FileNotFoundException(); };
-
-        var fontInfos = new Dictionary<string, string>[fp.GetNumFonts()];
-        for (uint i = 0; i < fontInfos.Length; i++)
-        {
-            fontInfos[i] = FontParse.GetFontInfo(fp.GetFont(i)!);
-        }
-    }
-
     List<FontInfo> GetFontInfoFromFiles(string dir)
     {
         string[] supportFonts = [".ttf", ".otf", ".ttc", "otc"];
@@ -79,45 +67,13 @@ public class SubsetByPyFT(ILogger? logger = null)
                 if (!fp.Open()) { throw new FormatException(); };
                 for (uint i = 0; i < fp.GetNumFonts(); i++)
                 {
-                    fontInfos.Add(fp.GetFontInfo(i, HasTrueBoldOrItalicRecord));
+                    fontInfos.Add(fp.GetFontInfo(i));
                 }
             }
         }
         _stopwatch.Stop();
-        var pass1 = _stopwatch.ElapsedMilliseconds;
-        _logger?.ZLogDebug($"初次扫描和解析完成，用时 {pass1} ms");
-        //_stopwatch.Reset();
-        _logger?.ZLogDebug($"开始分析记录可能有多种变体的 fontfamily");
-        _stopwatch.Restart();
-        for (var i = 0; i < fontInfos.Count; i++)
-        {
-            var info = fontInfos[i];
-            if (!info.Bold && !info.Italic)
-            {
-                if (HasTrueBoldOrItalicRecord.Contains(info.FamilyName))
-                {
-                    info.MaybeHasTrueBoldOrItalic = true;
-                    fontInfos[i] = info;
-                    _logger?.ZLogDebug($"{info.FileName} 中的 {info.FamilyName} 检测到其他变体");
-                }
-                else
-                {
-                    string[] prefix = ["Arial", "Avenir Next", "Microsoft YaHei", "Source Han", "Noto", "Yu Gothic"];
-                    if ((info.Weight == 500 && info.FamilyName.StartsWith("Avenir Next"))
-                        || (info.Weight == 400 && (prefix.Any(info.FamilyName.StartsWith) || (info.FamilyName.StartsWith("FZ") && info.FamilyName.EndsWith("JF")) || (info.MaxpNumGlyphs < 6000 && (info.FamilyName == info.FamilyNameChs)))))
-                    {
-                        info.MaybeHasTrueBoldOrItalic = true;
-                        fontInfos[i] = info;
-                        _logger?.ZLogDebug($"{info.FileName} 中的 {info.FamilyName} 未在现有字体中检测到其他变体");
-                    }
-                }
-            }
-        }
-        _stopwatch.Stop();
-        _logger?.ZLogDebug($"变体分析完成，用时 {_stopwatch.ElapsedMilliseconds} ms");
-        _logger?.ZLogInformation($"字体文件扫描完成，用时 {pass1 + _stopwatch.ElapsedMilliseconds} ms");
+        _logger?.ZLogDebug($"字体文件扫描完成，用时 {_stopwatch.ElapsedMilliseconds} ms");
         _stopwatch.Reset();
-
         return fontInfos;
     }
 
@@ -168,21 +124,25 @@ public class SubsetByPyFT(ILogger? logger = null)
         _logger?.ZLogDebug($"开始对字体文件信息与 ass 定义的字体进行匹配");
         fontMap = [];
         List<AssFontInfo> matchedAssFontInfos = [];
-        foreach (FontInfo fontInfo in fontInfos)
-        {
-            foreach (var assFont in assFonts)
-            {
-                if (!matchedAssFontInfos.Contains(assFont.Key) && AssFont.IsMatch(assFont.Key, fontInfo))
-                {
-                    if (!fontMap.TryGetValue(fontInfo, out var _))
-                    {
-                        fontMap.Add(fontInfo, []);
-                    }
-                    fontMap[fontInfo].Add(assFont.Key);
 
-                    matchedAssFontInfos.Add(assFont.Key);
-                    _logger?.ZLogDebug($"{assFont.Key.ToString()} 匹配到了 {fontInfo.FileName} 的索引 {fontInfo.Index}");
+        var fiGroups = fontInfos.GroupBy(fontInfo => fontInfo.FamilyName);
+        foreach (var fig in fiGroups)
+        {
+            foreach (var afi in assFonts.Keys)
+            {
+                if (matchedAssFontInfos.Contains(afi)) { continue; }
+                var _fontInfo = AssFont.GetMatchedFontInfo(afi, fig, _logger);
+                if (_fontInfo == null) { continue; }
+                var fontInfo = (FontInfo) _fontInfo;
+
+                if (!fontMap.TryGetValue(fontInfo, out var _))
+                {
+                    fontMap.Add(fontInfo, []);
                 }
+                fontMap[fontInfo].Add(afi);
+
+                matchedAssFontInfos.Add(afi);
+                _logger?.ZLogDebug($"{afi.ToString()} 匹配到了 {fontInfo.FileName} 的索引 {fontInfo.Index}");
             }
         }
         _logger?.ZLogDebug($"匹配完成");

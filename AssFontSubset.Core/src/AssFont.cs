@@ -2,6 +2,7 @@
 using Mobsub.SubtitleParse;
 using Mobsub.SubtitleParse.AssTypes;
 using System.Text;
+using ZLogger;
 
 namespace AssFontSubset.Core;
 
@@ -23,43 +24,93 @@ public class AssFont
         return AssFontParse.GetUsedFontInfos(ass.Events.Collection, ass.Styles.Collection);
     }
 
-    public static bool IsMatch(AssFontInfo afi, FontInfo fi)
+    public static bool IsMatch(AssFontInfo afi, FontInfo fi, bool single, int? minimalWeight = null, bool? hadItalic = null, ILogger? logger = null)
     {
         var boldMatch = false;
         var italicMatch = false;
+        if (!single) { if (minimalWeight is null || hadItalic is null) throw new ArgumentNullException(); }
 
-        var assFn = afi.Name.StartsWith('@') ? afi.Name.AsSpan(1) : afi.Name.AsSpan();
-        if ((assFn.SequenceEqual(fi.FamilyName.AsSpan()) || assFn.SequenceEqual(fi.FamilyNameChs.AsSpan())))
+        logger?.ZLogDebug($"Try match {afi.ToString()} and {fi.FamilyName}_w{fi.Weight}_b{(fi.Bold ? 1 : 0)}_i{(fi.Italic ? 1 : 0)}");
+        switch (afi.Weight)
         {
-            if (afi.Weight == 0)
-            {
-                boldMatch = !fi.Bold;
-            }
-            else if (afi.Weight == 1)
-            {
-                boldMatch = fi.Bold || (!fi.MaybeHasTrueBoldOrItalic && !fi.Bold && !fi.Italic);
-            }
-            else if (afi.Weight == fi.Weight)
-            {
-                // Maybe wrong
-                boldMatch = true;
-            }
+            case 0:
+                boldMatch = fi.Bold ? single : true;    // cant get only true bold
+                break;
+            case 1:
+                if (single)
+                {
+                    // maybe faux bold
+                    if (fi.Weight >= 550) { logger?.ZLogWarning($"{afi.Name} use \\b1 will not get faux bold"); }
+                    boldMatch = true;
+                }
+                else
+                {
+                    // strict
+                    boldMatch = fi.Bold;
+                }
+                break;
+            default:
+                if (afi.Weight == fi.Weight)
+                {
+                    boldMatch = true;
+                }
+                else
+                {
+                    if (fi.Weight > (afi.Weight + 150)) { logger?.ZLogDebug($"{afi.Name} should use \\b{fi.Weight}"); }
+                }
+                break;
+        }
 
-            if (afi.Italic == fi.Italic)
+        if (afi.Italic)
+        {
+            if (fi.Italic)
             {
                 italicMatch = true;
             }
-            else if (afi.Italic == true && (!fi.MaybeHasTrueBoldOrItalic && !fi.Bold && !fi.Italic))
+            else
             {
-                italicMatch = true;
+                // maybe faux italic
+                if (single) { italicMatch = true; }
+                else
+                {
+                    if (!(bool)hadItalic!) { italicMatch = true; }
+                    else if (!(fi.MaxpNumGlyphs < 6000 && fi.FamilyName == fi.FamilyNameChs))
+                    {
+                        // maybe cjk fonts
+                        italicMatch = true;
+                        logger?.ZLogDebug($"{afi.Name} use \\i1 maybe get faux italic");
+                    }
+                }
             }
-            else if (afi.Italic == true && fi.MaybeHasTrueBoldOrItalic && fi.FamilyName != fi.FamilyNameChs)
-            {
-                italicMatch = true;
-            }
+        }
+        else
+        {
+            if (!fi.Italic) { italicMatch = true; }
         }
 
         return boldMatch && italicMatch;
+    }
+
+    public static FontInfo? GetMatchedFontInfo(AssFontInfo afi, IGrouping<string, FontInfo> fig, ILogger? logger = null)
+    {
+        var assFn = afi.Name.StartsWith('@') ? afi.Name.AsSpan(1) : afi.Name.AsSpan();
+        if (!(assFn.SequenceEqual(fig.Key.AsSpan()) || assFn.SequenceEqual(fig.First().FamilyNameChs.AsSpan()))) { return null; }
+
+        if (fig.Count() == 1)
+        {
+            if (IsMatch(afi, fig.First(), true, null, null, logger)) { return fig.First(); }
+            else { return null; }
+        }
+        else
+        {
+            var minimalWeight = fig.Select(fig => fig.Weight).Min();
+            var hadItalic = fig.Select(fig => fig.Italic is true).Count() > 0;
+            foreach (var fi in fig)
+            {
+                if (IsMatch(afi, fi, false, minimalWeight, hadItalic, logger)) { return fi; }
+            }
+            return null;
+        }
     }
 
     private static HashSet<string> GetUsedStyles(List<AssEvent> events)

@@ -7,47 +7,42 @@ namespace AssFontSubset.Core.Tests;
 public class AssFontTests
 {
     [TestMethod]
-    public void IsMatchTestTrueBIZ()
+    public void MatchTestTrueBIZ()
     {
         var fn = "Times New Roman";
         var fnChs = "Times New Roman";
         
-        var afi =  new AssFontInfo() { Name = fn, Weight = 0, Italic = false };
+        var afiR =  new AssFontInfo() { Name = fn, Weight = 0, Italic = false };
         var afiB = new AssFontInfo() { Name = fn, Weight = 1, Italic = false };
         var afiI = new AssFontInfo() { Name = fn, Weight = 0, Italic = true };
         var afiZ = new AssFontInfo() { Name = fn, Weight = 1, Italic = true };
         var afi4 = new AssFontInfo() { Name = fn, Weight = 400, Italic = false };
 
-        var fi  = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = false, Italic = false, MaybeHasTrueBoldOrItalic = true,  Weight = 400 };
-        var fiB = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = true,  Italic = false, MaybeHasTrueBoldOrItalic = false, Weight = 700 };
-        var fiI = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = false, Italic = true,  MaybeHasTrueBoldOrItalic = false, Weight = 400 };
-        var fiZ = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = true,  Italic = true,  MaybeHasTrueBoldOrItalic = false, Weight = 700 };
+        var fiR  = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = false, Italic = false, Weight = 400 };
+        var fiB = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = true,  Italic = false, Weight = 700 };
+        var fiI = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = false, Italic = true,  Weight = 400 };
+        var fiZ = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = true,  Italic = true,  Weight = 700 };
 
-        var afL = new List<AssFontInfo>() { afi, afiB, afiI, afiZ, afi4 };
-        var fiL = new List<FontInfo>() { fi, fiB, fiI, fiZ };
+        var afL = new List<AssFontInfo>() { afiR, afiB, afiI, afiZ, afi4 };
+        var fiL = new List<FontInfo>() { fiR, fiB, fiI, fiZ };
+        var fiGroups = fiL.GroupBy(fontInfo => fontInfo.FamilyName);
+
         foreach (var a in afL)
         {
-            foreach (var f in fiL)
+            foreach (var f in fiGroups)
             {
-                if ((a == afi && f == fi)
-                    || (a == afiB && f == fiB)
-                    || (a == afiI && f == fiI)
-                    || (a == afiZ && f == fiZ)
-                    || (a == afi4 && f == fi)
-                    )
-                {
-                    Assert.IsTrue(IsMatch(a, f));
-                }
-                else
-                {
-                    Assert.IsFalse(IsMatch(a, f));
-                }
+                var tfi = GetMatchedFontInfo(a, f);
+                if (a == afiR) { Assert.IsTrue(fiR == tfi); }
+                if (a == afiB) { Assert.IsTrue(fiB == tfi); }
+                if (a == afiI) { Assert.IsTrue(fiI == tfi); }
+                if (a == afiZ) { Assert.IsTrue(fiZ == tfi); }
+                if (a == afi4) { Assert.IsTrue(fiR == tfi); }
             }
         }
     }
 
     [TestMethod]
-    public void IsMatchTestFakeBIZ()
+    public void MatchTestFakeBIZ()
     {
         var fn = "FZLanTingHei-R-GBK";
         var fnChs = "方正兰亭黑_GBK";
@@ -61,12 +56,80 @@ public class AssFontTests
         var afiIFChs = new AssFontInfo() { Name = fnChs, Weight = 0, Italic = true };
         var afiZFChs = new AssFontInfo() { Name = fnChs, Weight = 1, Italic = true };
 
-        var fi = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = false, Italic = false, MaybeHasTrueBoldOrItalic = false, Weight = 400 };
+        var fi = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = false, Italic = false, Weight = 400 };
 
         var afL = new List<AssFontInfo>() { afi, afiBF, afiIF, afiZF, afiChs, afiBFChs, afiIFChs, afiZFChs };
         foreach ( var af in afL )
         {
-            Assert.IsTrue(IsMatch(af, fi));
+            Assert.IsTrue(IsMatch(af, fi, true));
+        }
+    }
+
+    [TestMethod]
+    public void MatchTestPartiallyTrueBIZ()
+    {
+        var fn = "Times New Roman";
+        var fnChs = "Times New Roman";
+
+        var afiR = new AssFontInfo() { Name = fn, Weight = 0, Italic = false };
+        var afiB = new AssFontInfo() { Name = fn, Weight = 1, Italic = false };
+        var afiI = new AssFontInfo() { Name = fn, Weight = 0, Italic = true };
+        var afiZ = new AssFontInfo() { Name = fn, Weight = 1, Italic = true };
+        var afi4 = new AssFontInfo() { Name = fn, Weight = 400, Italic = false };
+
+        //var fiR = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = false, Italic = false, Weight = 400 };
+        //var fiB = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = true, Italic = false, Weight = 700 };
+        var fiI = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = false, Italic = true, Weight = 400 };
+        var fiZ = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = true, Italic = true, Weight = 700 };
+
+        var afL = new List<AssFontInfo>() { afiR, afiB, afiI, afiZ, afi4 };
+        var fiL = new List<FontInfo>() { fiI, fiZ };
+        var fiGroups = fiL.GroupBy(fontInfo => fontInfo.FamilyName);
+
+        foreach (var a in afL)
+        {
+            foreach (var f in fiGroups)
+            {
+                var tfi = GetMatchedFontInfo(a, f);
+                if (a == afiR) { Assert.IsTrue(null == tfi); }
+                if (a == afiB) { Assert.IsTrue(null == tfi); }
+                if (a == afiI) { Assert.IsTrue(fiI == tfi); }
+                if (a == afiZ) { Assert.IsTrue(fiZ == tfi); }
+                if (a == afi4) { Assert.IsTrue(null == tfi); }
+            }
+        }
+    }
+
+    [TestMethod]
+    public void MatchTestTrueB()
+    {
+        var fn = "Source Han Sans";
+        var fnChs = "思源黑体";
+
+        var afiR = new AssFontInfo() { Name = fn, Weight = 0, Italic = false };
+        var afiB = new AssFontInfo() { Name = fn, Weight = 1, Italic = false };
+        var afiI = new AssFontInfo() { Name = fn, Weight = 0, Italic = true };
+        var afiZ = new AssFontInfo() { Name = fn, Weight = 1, Italic = true };
+        var afi4 = new AssFontInfo() { Name = fn, Weight = 400, Italic = false };
+
+        var fiR = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = false, Italic = false, Weight = 400, MaxpNumGlyphs = 65535 };
+        var fiB = new FontInfo() { FamilyName = fn, FamilyNameChs = fnChs, Bold = true, Italic = false, Weight = 700, MaxpNumGlyphs = 65535 };
+
+        var afL = new List<AssFontInfo>() { afiR, afiB, afiI, afiZ, afi4 };
+        var fiL = new List<FontInfo>() { fiR, fiB };
+        var fiGroups = fiL.GroupBy(fontInfo => fontInfo.FamilyName);
+
+        foreach (var a in afL)
+        {
+            foreach (var f in fiGroups)
+            {
+                var tfi = GetMatchedFontInfo(a, f);
+                if (a == afiR) { Assert.IsTrue(fiR == tfi); }
+                if (a == afiB) { Assert.IsTrue(fiB == tfi); }
+                if (a == afiI) { Assert.IsTrue(fiR == tfi); }
+                if (a == afiZ) { Assert.IsTrue(fiB == tfi); }
+                if (a == afi4) { Assert.IsTrue(fiR == tfi); }
+            }
         }
     }
 }
