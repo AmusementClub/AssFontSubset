@@ -21,6 +21,8 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
+build/*.7z
+build/*.bat
 
 # Visual Studio 2015 cache/options directory
 .vs/

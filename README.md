@@ -40,6 +40,7 @@ Options:
 1. 考虑移除 gui 支持
 2. 考虑增加对 hb-subset 和 fontations subset 的支持
 3. 不确定是否要支持可变字体（variable fonts）
+4. 不确定是否要恢复检查更新的功能
 
 ## FAQ 常见问题和故障排除
 
