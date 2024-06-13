@@ -24,10 +24,10 @@ public class SubsetByPyFT(ILogger? logger = null)
         {
             if (!file.Exists)
             {
-                throw new Exception($"请检查字体文件{file}是否存在");
+                throw new Exception($"Please check if font file {file} exists");
             }
         }
-        if (!fontPath.Exists) { throw new Exception($"请检查字体文件夹 {fontPath} 是否存在"); }
+        if (!fontPath.Exists) { throw new Exception($"Please check if directory {fontPath} exists"); }
         if (outputPath.Exists) { outputPath.Delete(true); }
         var fontDir = fontPath.FullName;
         var optDir = outputPath.FullName;
@@ -54,8 +54,8 @@ public class SubsetByPyFT(ILogger? logger = null)
         List<FontInfo> fontInfos = [];
         HashSet<string> HasTrueBoldOrItalicRecord = [];
 
-        _logger?.ZLogInformation($"开始扫描分析 {dir} 中的有效字体文件");
-        _logger?.ZLogInformation($"支持的字体后缀名为：{string.Join(", ", supportFonts)}");
+        _logger?.ZLogInformation($"Start scan valid font files in {dir}");
+        _logger?.ZLogInformation($"Support font file extension: {string.Join(", ", supportFonts)}");
         _stopwatch.Start();
 
         foreach (string f in Directory.GetFiles(dir))
@@ -72,7 +72,7 @@ public class SubsetByPyFT(ILogger? logger = null)
             }
         }
         _stopwatch.Stop();
-        _logger?.ZLogDebug($"字体文件扫描完成，用时 {_stopwatch.ElapsedMilliseconds} ms");
+        _logger?.ZLogDebug($"Font file scanning completed, use {_stopwatch.ElapsedMilliseconds} ms");
         _stopwatch.Reset();
         return fontInfos;
     }
@@ -82,7 +82,7 @@ public class SubsetByPyFT(ILogger? logger = null)
         assDataWithOutputName = [];
         Dictionary<AssFontInfo, List<Rune>> multiAssFonts = [];
 
-        _logger?.ZLogInformation($"开始提取输入 ass 的字体信息");
+        _logger?.ZLogInformation($"Start parse font info from ass files");
         _stopwatch.Start();
 
         foreach (var assFile in assFiles)
@@ -111,17 +111,17 @@ public class SubsetByPyFT(ILogger? logger = null)
         }
 
         _stopwatch.Stop();
-        _logger?.ZLogInformation($"ass 字体信息提取完成，用时 {_stopwatch.ElapsedMilliseconds} ms");
+        _logger?.ZLogInformation($"Ass font info parsing completed, use {_stopwatch.ElapsedMilliseconds} ms");
         _stopwatch.Reset();
         return multiAssFonts;
     }
 
     Dictionary<string, List<SubsetFont>> GetSubsetFonts(List<FontInfo> fontInfos, Dictionary<AssFontInfo, List<Rune>> assFonts, out Dictionary<FontInfo, List<AssFontInfo>> fontMap)
     {
-        _logger?.ZLogInformation($"开始生成子集字体信息");
+        _logger?.ZLogInformation($"Start generate subset font info");
         _stopwatch.Start();
 
-        _logger?.ZLogDebug($"开始对字体文件信息与 ass 定义的字体进行匹配");
+        _logger?.ZLogDebug($"Start match font file info and ass font info");
         fontMap = [];
         List<AssFontInfo> matchedAssFontInfos = [];
 
@@ -142,10 +142,10 @@ public class SubsetByPyFT(ILogger? logger = null)
                 fontMap[fontInfo].Add(afi);
 
                 matchedAssFontInfos.Add(afi);
-                _logger?.ZLogDebug($"{afi.ToString()} 匹配到了 {fontInfo.FileName} 的索引 {fontInfo.Index}");
+                _logger?.ZLogDebug($"{afi.ToString()} match {fontInfo.FileName} index {fontInfo.Index}");
             }
         }
-        _logger?.ZLogDebug($"匹配完成");
+        _logger?.ZLogDebug($"Match completed");
 
         if (matchedAssFontInfos.Count != assFonts.Keys.Count)
         {
@@ -153,7 +153,7 @@ public class SubsetByPyFT(ILogger? logger = null)
             throw new Exception($"Not found font file: {string.Join("、", NotFound.Select(x => x.ToString()))}");
         }
 
-        _logger?.ZLogDebug($"开始把字体文件信息转换为子集字体信息");
+        _logger?.ZLogDebug($"Start convert font file info to subset font info");
         //List<SubsetFont> subsetFonts = [];
         Dictionary<string, List<SubsetFont>> subsetFonts = [];
         foreach (var kv in fontMap)
@@ -167,10 +167,10 @@ public class SubsetByPyFT(ILogger? logger = null)
             }
             subsetFonts[kv.Key.FamilyName].Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, runes));
         }
-        _logger?.ZLogDebug($"转换完成");
+        _logger?.ZLogDebug($"Convert completed");
 
         _stopwatch.Stop();
-        _logger?.ZLogInformation($"处理完成，用时 {_stopwatch.ElapsedMilliseconds} ms");
+        _logger?.ZLogInformation($"Generate completed, use {_stopwatch.ElapsedMilliseconds} ms");
         _stopwatch.Reset();
         return subsetFonts;
     }

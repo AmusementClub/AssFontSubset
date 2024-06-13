@@ -18,7 +18,7 @@ public class AssFont
         undefinedStyles.ExceptWith(ass.Styles.Names);
         if (undefinedStyles.Count > 0)
         {
-            throw new Exception($"以下样式未在 Styles 中定义：{string.Join(", ", undefinedStyles)}");
+            throw new Exception($"Undefined styles in ass Styles section: {string.Join(", ", undefinedStyles)}");
         }
 
         return AssFontParse.GetUsedFontInfos(ass.Events.Collection, ass.Styles.Collection);

@@ -16,6 +16,7 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 {
     private readonly string _pyftsubset = pyftsubset;
     private readonly string _ttx = ttx;
+    private string pyFtVersion = string.Empty;
     private readonly ILogger? _logger = logger;
     public SubsetConfig Config;
     public Stopwatch? sw;
@@ -45,10 +46,10 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 
     public void SubsetFonts(Dictionary<string, List<SubsetFont>> subsetFonts, string outputFolder, out Dictionary<string, string> nameMap)
     {
-        _logger?.ZLogInformation($"开始字体子集化");
+        _logger?.ZLogInformation($"Start subset font");
         GetFontToolsVersion();
         nameMap = [];
-        _logger?.ZLogDebug($"生成随机不重复的字体名");
+        _logger?.ZLogDebug($"Generate randomly non repeating font names");
         var randoms = SubsetFont.GenerateRandomStrings(8, subsetFonts.Keys.Count);
 
         var i = 0;
@@ -58,13 +59,13 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
             foreach (var subsetFont in kv.Value)
             {
                 subsetFont.RandomNewName = randoms[i];
-                _logger?.ZLogInformation($"开始子集化 {subsetFont.OriginalFontFile.Name}");
+                _logger?.ZLogInformation($"Start subset {subsetFont.OriginalFontFile.Name}");
                 timer = 0;
                 CreateFontSubset(subsetFont, outputFolder);
                 DumpFont(subsetFont);
                 ChangeXmlFontName(subsetFont);
                 CompileFont(subsetFont);
-                _logger?.ZLogInformation($"子集化完成，用时 {timer} ms");
+                _logger?.ZLogInformation($"Subset font completed, use {timer} ms");
 
                 if (!Config.DebugMode)
                 {
@@ -102,11 +103,11 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 
     private void DeleteTempFiles(SubsetFont ssf)
     {
-        _logger?.ZLogDebug($"开始清理相关临时文件：{Environment.NewLine}临时子集字体：{ssf.SubsetFontFileTemp}{Environment.NewLine}临时 ttx 文件：{ssf.SubsetFontTtxTemp}{Environment.NewLine}子集字符文件：{ssf.CharactersFile}");
+        _logger?.ZLogDebug($"Start delete temp files：{Environment.NewLine}temp subset font files：{ssf.SubsetFontFileTemp}{Environment.NewLine}ttx files：{ssf.SubsetFontTtxTemp}{Environment.NewLine}glyphs files：{ssf.CharactersFile}");
         File.Delete(ssf.SubsetFontFileTemp!);
         File.Delete(ssf.SubsetFontTtxTemp!);
         File.Delete(ssf.CharactersFile!);
-        _logger?.ZLogDebug($"清理完成");
+        _logger?.ZLogDebug($"Clean completed");
     }
 
     private void ChangeXmlFontName(SubsetFont font)
@@ -115,8 +116,8 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 
         if (!File.Exists(ttxFile))
         {
-            throw new Exception($"字体生成 ttx 文件失败，请尝试使用 FontForge 重新生成字体。{Environment.NewLine}" +
-                $"文件名：{font.OriginalFontFile}");
+            throw new Exception($"Font dump to ttx failed, please use FontForge remux font. {Environment.NewLine}" +
+                $"File: {font.OriginalFontFile}");
         }
 
         var ttxContent = File.ReadAllText(ttxFile);
@@ -137,7 +138,7 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
             switch (nameID)
             {
                 case "0":
-                    record.InnerText = $"Processed by AssFontSubset v{System.Reflection.Assembly.GetEntryAssembly()!.GetName().Version}";
+                    record.InnerText = $"Processed by AssFontSubset v{System.Reflection.Assembly.GetEntryAssembly()!.GetName().Version}; pyFontTools {pyFtVersion}";
                     break;
                 case "1":
                 case "3":
@@ -165,8 +166,8 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 
         if (!replaced)
         {
-            throw new Exception($"字体名称替换失败，请尝试使用 FontForge 重新生成字体。{Environment.NewLine}" +
-                $"文件名：{font.OriginalFontFile}");
+            throw new Exception($"Font name replacement failed, please use FontForge remux font. {Environment.NewLine}" +
+                $"File: {font.OriginalFontFile}");
         }
     }
 
@@ -198,39 +199,39 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
         var success = true;
         sw.Start();
         using var process = Process.Start(startInfo);
-        _logger?.ZLogDebug($"开始执行：{startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
+        _logger?.ZLogDebug($"Start command: {startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
 
         if (process != null)
         {
             var output = process.StandardOutput.ReadToEnd();
             var errorOutput = process.StandardError.ReadToEnd();
 
-            _logger?.ZLogDebug($"正在执行");
+            _logger?.ZLogDebug($"Executing...");
             process.WaitForExit();
             var exitCode = process.ExitCode;
             sw.Stop();
 
             if (exitCode != 0)
             {
-                _logger?.ZLogError($"执行返回 {exitCode}，错误输出: {errorOutput}");
+                _logger?.ZLogError($"Return exitcode {exitCode}，error output: {errorOutput}");
                 success = false;
             }
             else
             {
-                _logger?.ZLogDebug($"执行成功，用时 {sw.ElapsedMilliseconds} ms");
+                _logger?.ZLogDebug($"Successfully executed, use {sw.ElapsedMilliseconds} ms");
             }
             timer += sw.ElapsedMilliseconds;
         }
         else
         {
             success = false;
-            _logger?.ZLogDebug($"进程未启动");
+            _logger?.ZLogDebug($"Process not start");
         }
 
         sw.Reset();
         if (!success)
         {
-            throw new Exception($"命令执行失败：{startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
+            throw new Exception($"Command execution failed: {startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
         }
         else { return; }
 
@@ -295,13 +296,13 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
         using var process = Process.Start(startInfo);
         if (process != null)
         {
-            var output = process.StandardOutput.ReadToEnd().Trim('\n');
+            pyFtVersion = process.StandardOutput.ReadToEnd().Trim('\n');
             process.WaitForExit();
-            _logger?.ZLogInformation($"使用的 pyFontTools 版本为：{output}");
+            _logger?.ZLogInformation($"Font subset use pyFontTools {pyFtVersion}");
         }
         else
         {
-            throw new Exception($"命令执行失败：{startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
+            throw new Exception($"Command execution failed: {startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
         }
     }
 }
