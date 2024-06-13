@@ -28,7 +28,7 @@ Options:
 
 ## AssFontSubset.Avalonia
 
-大致可以参考 [./README_v1.md] 中的 gui 使用方法，目前不支持显示实时的子集化进度。
+大致可以参考 [v1 README](./README_v1.md) 中的 gui 使用方法，目前不支持显示实时的子集化进度。
 
 ## 注意
 
