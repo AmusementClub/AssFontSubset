@@ -39,7 +39,10 @@ public class AssFont
             case 1:
                 if (single)
                 {
-                    // maybe faux bold
+                    // The following cases exist:
+                    // 1. Only the bold weight font file has been correctly matched
+                    // 2. Font weight less than 550, get faux bold
+                    // 3. Font weight great than or equal 550, \b1 is invalid
                     if (fi.Weight >= 550) { logger?.ZLogWarning($"{afi.Name} use \\b1 will not get faux bold"); }
                     boldMatch = true;
                 }
