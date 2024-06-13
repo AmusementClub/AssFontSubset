@@ -258,6 +258,7 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
             $"--output-file={ssf.SubsetFontFileTemp!}",
             "--name-languages=*",
             $"--font-number={ssf.TrackIndex}",
+            "--no-layout-closure",
         ];
         foreach (var arg in argus)
         {
