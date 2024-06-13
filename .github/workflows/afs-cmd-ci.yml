@@ -15,6 +15,7 @@ on:
     - 'AssFontSubset.Core/**.csproj'
     - 'AssFontSubset.Console/**.cs'
     - 'AssFontSubset.Console/**.csproj'
+  workflow_dispatch:
 
 jobs:
   build:
