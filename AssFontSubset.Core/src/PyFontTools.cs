@@ -23,6 +23,7 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 
     public void SubsetFonts(List<SubsetFont> subsetFonts, string outputFolder)
     {
+        GetFontToolsVersion();
         var randoms = SubsetFont.GenerateRandomStrings(8, subsetFonts.Count);
         var num = 0;
         foreach (var subsetFont in subsetFonts)
@@ -45,6 +46,7 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
     public void SubsetFonts(Dictionary<string, List<SubsetFont>> subsetFonts, string outputFolder, out Dictionary<string, string> nameMap)
     {
         _logger?.ZLogInformation($"开始字体子集化");
+        GetFontToolsVersion();
         nameMap = [];
         _logger?.ZLogDebug($"生成随机不重复的字体名");
         var randoms = SubsetFont.GenerateRandomStrings(8, subsetFonts.Keys.Count);
@@ -283,5 +285,22 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
         startInfo.ArgumentList.Add(ssf.SubsetFontTtxTemp!);
         startInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
         return startInfo;
+    }
+
+    private void GetFontToolsVersion()
+    {
+        var startInfo = GetSimpleCmd(_ttx);
+        startInfo.ArgumentList.Add("--version");
+        using var process = Process.Start(startInfo);
+        if (process != null)
+        {
+            var output = process.StandardOutput.ReadToEnd().Trim('\n');
+            process.WaitForExit();
+            _logger?.ZLogInformation($"使用的 pyFontTools 版本为：{output}");
+        }
+        else
+        {
+            throw new Exception($"命令执行失败：{startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
+        }
     }
 }
