@@ -2,14 +2,14 @@ name: afs.cmd
 
 on:
   push:
-    branches: [ "afs-nt" ]
+    branches: [ "master" ]
     paths:
     - 'AssFontSubset.Core/**.cs'
     - 'AssFontSubset.Core/**.csproj'
     - 'AssFontSubset.Console/**.cs'
     - 'AssFontSubset.Console/**.csproj'
   pull_request:
-    branches: [ "afs-nt" ]
+    branches: [ "master" ]
     paths:
     - 'AssFontSubset.Core/**.cs'
     - 'AssFontSubset.Core/**.csproj'
