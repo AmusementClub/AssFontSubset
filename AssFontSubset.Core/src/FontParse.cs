@@ -95,7 +95,7 @@ public class FontParse(string fontFile)
 
         if (!fnHad && !fnlocHad)
         {
-            throw new Exception($"Please check {fontFile}, it does not have a recognizable font family name");
+            throw new Exception($"Please check {FontFile}, it does not have a recognizable font family name");
         }
 
         if (!fnHad)
