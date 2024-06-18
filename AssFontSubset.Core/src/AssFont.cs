@@ -14,11 +14,28 @@ public class AssFont
         ass.ReadAssFile(file);
 
         var usedStyles = GetUsedStyles(ass.Events.Collection);
-        var undefinedStyles = new HashSet<string>(usedStyles);
-        undefinedStyles.ExceptWith(ass.Styles.Names);
-        if (undefinedStyles.Count > 0)
+        var undefinedStylesTemp = new HashSet<string>(usedStyles);
+        undefinedStylesTemp.ExceptWith(ass.Styles.Names);
+        if (undefinedStylesTemp.Count > 0)
         {
-            throw new Exception($"Undefined styles in ass Styles section: {string.Join(", ", undefinedStyles)}");
+            var undefinedStyles = new HashSet<string>();
+            foreach (var und in undefinedStylesTemp)
+            {
+                if (ass.Styles.Names.Contains(und.TrimStart('*')))
+                {
+                    // vsfilter ingore starting asterisk
+                    logger?.ZLogWarning($"Style '{und}' should remove the starting asterisk");
+                }
+                else
+                {
+                    undefinedStyles.Add(und);
+                }
+            }
+
+            if (undefinedStyles.Count > 0)
+            {
+                throw new Exception($"Undefined styles in ass Styles section: {string.Join(", ", undefinedStyles)}");
+            }
         }
 
         return AssFontParse.GetUsedFontInfos(ass.Events.Collection, ass.Styles.Collection);
