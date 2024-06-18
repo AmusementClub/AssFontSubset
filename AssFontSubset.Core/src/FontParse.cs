@@ -89,14 +89,28 @@ public class FontParse(string fontFile)
                 nameDict.Add(kv.Key, s!);
             }
         }
-
-        var familyName = nameDict["family_name"];
-        if (!nameDict.TryGetValue("family_name_loc", out var familyNameLoc)){ familyNameLoc = familyName; }
         
+        var fnHad = nameDict.TryGetValue("family_name", out var familyName);
+        var fnlocHad = nameDict.TryGetValue("family_name_loc", out var familyNameLoc);
+
+        if (!fnHad && !fnlocHad)
+        {
+            throw new Exception($"Please check {fontFile}, it does not have a recognizable font family name");
+        }
+
+        if (!fnHad)
+        {
+            familyName = familyNameLoc;
+        }
+        else if (!fnlocHad)
+        {
+            familyNameLoc = familyName;
+        }
+
         return new FontInfo()
         {
-            FamilyName = familyName,
-            FamilyNameChs = familyNameLoc,
+            FamilyName = familyName!,
+            FamilyNameChs = familyNameLoc!,
             //Regular = ((fsSel & 0b_0100_0000) >> 6) == 1,   // bit 6
             Bold = ((fsSel & 0b_0010_0000) >> 5) == 1,  // bit 5
             Italic = (fsSel & 0b_1) == 1,   // bit 0
