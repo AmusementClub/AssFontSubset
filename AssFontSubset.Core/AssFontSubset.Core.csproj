@@ -6,8 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Mobsub.SubtitleParse" Version="0.3.5" />
-    <PackageReference Include="OTFontFile" Version="1.0.1-beta" />
+    <ProjectReference Include="..\submodules\Mobsub\SubtitleParse\SubtitleParse.csproj" />
   </ItemGroup>
 
   <Import Project="..\build\global.props" />
