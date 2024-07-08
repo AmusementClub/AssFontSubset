@@ -1,5 +1,4 @@
-﻿using OTFontFile;
-using static OTFontFile.Table_name;
+﻿using Mobsub.Helper.Font;
 
 namespace AssFontSubset.Core;
 
@@ -51,121 +50,38 @@ public struct FontInfo
     public static bool operator !=(FontInfo lhs, FontInfo rhs) => !lhs.Equals(rhs);
 }
 
-public class FontParse(string fontFile)
+public static class FontParse
 {
-    public string FontFile = fontFile;
-    public OTFile FontData = new OTFile();
-
-    public bool Open() => FontData.open(FontFile);
-    public bool IsCollection() => FontData.IsCollection();
-    public uint GetNumFonts() => FontData.GetNumFonts();
-    public OTFont GetFont(uint index) => FontData.GetFont(index)!;
-
-    public FontInfo GetFontInfo(uint index)
+    public static List<FontInfo> GetFontInfos(DirectoryInfo dirInfo)
     {
-        var font = GetFont(index);
+        List<FontInfo> fontInfos = [];
+        var fileInfos = dirInfo.GetFiles();
+        var faceInfos = OpenType.GetLocalFontsInfo(fileInfos);
 
-        var nameTable = (Table_name)font.GetTable("name")!;
-        var os2Table = (Table_OS2)font.GetTable("OS/2")!;
-        var fsSel = os2Table.fsSelection;
-
-        var ids = new Dictionary<string, GetStringParams>
+        foreach (var faceInfo in faceInfos)
         {
-            { "postscript_name", new GetStringParams { EncID = 0xffff, LangID = (ushort)LanguageIDWindows.en_US, NameID = (ushort)NameID.postScriptName } },
-            //{ "full_name",       new GetStringParams { EncID = 0xffff, LangID = (ushort)LanguageIDWindows.en_US, NameID = (ushort)NameID.fullName } },
-            { "family_name",     new GetStringParams { EncID = 0xffff, LangID = (ushort)LanguageIDWindows.en_US, NameID = (ushort)NameID.familyName } },
-            { "family_name_loc", new GetStringParams { EncID = 0xffff, LangID = (ushort)LanguageIDWindows.zh_Hans_CN, NameID = (ushort)NameID.familyName } },
-            //{ "subfamily_name",  new GetStringParams { EncID = 0xffff, LangID = (ushort)LanguageIDWindows.en_US, NameID = (ushort)NameID.subfamilyName } },
-        };
-
-        var result = GetBuffers(nameTable, ids);
-
-        var nameDict = new Dictionary<string, string>();
-        foreach (var kv in result)
-        {
-            if (kv.Value.buf != null)
-            {
-                var s = DecodeString(kv.Value.curPlatID, kv.Value.curEncID, kv.Value.curLangID, kv.Value.buf);
-                nameDict.Add(kv.Key, s!);
-            }
-        }
-        
-        var fnHad = nameDict.TryGetValue("family_name", out var familyName);
-        var fnlocHad = nameDict.TryGetValue("family_name_loc", out var familyNameLoc);
-
-        if (!fnHad && !fnlocHad)
-        {
-            throw new Exception($"Please check {FontFile}, it does not have a recognizable font family name");
+            fontInfos.Add(ConvertToFontInfo(faceInfo));
         }
 
-        if (!fnHad)
-        {
-            familyName = familyNameLoc;
-        }
-        else if (!fnlocHad)
-        {
-            familyNameLoc = familyName;
-        }
+        return fontInfos;
+    }
 
-        return new FontInfo()
+    private static FontInfo ConvertToFontInfo(FontFaceInfoBase faceInfo)
+    {
+        var info = (FontFaceInfoOpenType)faceInfo;
+        var fsSel = info.fsSelection;
+        return new FontInfo
         {
-            FamilyName = familyName!,
-            FamilyNameChs = familyNameLoc!,
+            FamilyName = info.FamilyNameGdi!,
+            FamilyNameChs = info.FamilyNameGdiChs!,
             //Regular = ((fsSel & 0b_0100_0000) >> 6) == 1,   // bit 6
-            Bold = ((fsSel & 0b_0010_0000) >> 5) == 1,  // bit 5
-            Italic = (fsSel & 0b_1) == 1,   // bit 0
-            Weight = os2Table.usWeightClass,
+            Bold = ((fsSel & 0b_0010_0000) >> 5) == 1, // bit 5
+            Italic = (fsSel & 0b_1) == 1, // bit 0
+            Weight = info.Weight,
             //MaybeHasTrueBoldOrItalic = false,
-            FileName = FontFile,
-            Index = index,
-            MaxpNumGlyphs = font.GetMaxpNumGlyphs(),
+            FileName = info.FileInfo!.FilePath!,
+            Index = info.FaceIndex,
+            MaxpNumGlyphs = info.MaxpNumGlyphs,
         };
-    }
-
-
-    private struct GetStringParams
-    {
-        //public ushort PlatID;
-        public ushort EncID;
-        public ushort LangID;
-        public ushort NameID;
-    }
-
-    private struct GetBufResult
-    {
-        public byte[]? buf;
-        public ushort curPlatID;
-        public ushort curEncID;
-        public ushort curLangID;
-    }
-
-    private static Dictionary<string, GetBufResult> GetBuffers(Table_name nameTable, Dictionary<string, GetStringParams> ids)
-    {
-        Dictionary<string, GetBufResult> result = [];
-        //List<string> tmpKeys = [];
-        for (uint i = 0; i < nameTable.NumberNameRecords; i++)
-        {
-            var nr = nameTable.GetNameRecord(i);
-            if (nr == null) { continue; }
-            foreach (var kv in ids)
-            {
-                if ((nr.PlatformID == (ushort)Table_name.PlatformID.Windows) &&
-                ((kv.Value.EncID == 0xffff || nr.EncodingID == kv.Value.EncID) && nr.EncodingID != (ushort)EncodingIDWindows.Unicode_full_repertoire) &&
-                (kv.Value.LangID == 0xffff || nr.LanguageID == kv.Value.LangID) &&
-                nr.NameID == kv.Value.NameID)
-                {
-                    var r = new GetBufResult
-                    {
-                        buf = nameTable.GetEncodedString(nr),
-                        curPlatID = nr.PlatformID,
-                        curEncID = nr.EncodingID,
-                        curLangID = nr.LanguageID,
-                    };
-                    result.Add(kv.Key, r);
-                    //yield return new Dictionary<string, GetBufResult> { { kv.Key, r} };
-                }
-            }
-        }
-        return result;
     }
 }

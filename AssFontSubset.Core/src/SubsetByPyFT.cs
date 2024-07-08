@@ -51,26 +51,15 @@ public class SubsetByPyFT(ILogger? logger = null)
     List<FontInfo> GetFontInfoFromFiles(string dir)
     {
         string[] supportFonts = [".ttf", ".otf", ".ttc", "otc"];
-        List<FontInfo> fontInfos = [];
         HashSet<string> HasTrueBoldOrItalicRecord = [];
 
         _logger?.ZLogInformation($"Start scan valid font files in {dir}");
         _logger?.ZLogInformation($"Support font file extension: {string.Join(", ", supportFonts)}");
         _stopwatch.Start();
-
-        foreach (string f in Directory.GetFiles(dir))
-        {
-            if (supportFonts.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
-            {
-                _logger?.ZLogInformation($"{f}");
-                var fp = new FontParse(f);
-                if (!fp.Open()) { throw new FormatException(); };
-                for (uint i = 0; i < fp.GetNumFonts(); i++)
-                {
-                    fontInfos.Add(fp.GetFontInfo(i));
-                }
-            }
-        }
+        
+        var dirInfo = new DirectoryInfo(dir);
+        var fontInfos = FontParse.GetFontInfos(dirInfo);
+        
         _stopwatch.Stop();
         _logger?.ZLogDebug($"Font file scanning completed, use {_stopwatch.ElapsedMilliseconds} ms");
         _stopwatch.Reset();
