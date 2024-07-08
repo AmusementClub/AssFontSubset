@@ -44,6 +44,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Update submodule
+      run: git submodule update --init --recursive
+
     - name: Test
       run: |
         dotnet --version
