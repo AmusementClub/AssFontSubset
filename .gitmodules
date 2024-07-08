@@ -1,3 +1,3 @@
 [submodule "submodules/Mobsub"]
 	path = submodules/Mobsub
-	url = git@github.com:Nekomoekissaten-SUB/Mobsub.git
+	url = https://github.com/Nekomoekissaten-SUB/Mobsub.git
