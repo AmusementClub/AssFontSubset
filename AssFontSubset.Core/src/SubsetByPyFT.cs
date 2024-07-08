@@ -24,7 +24,7 @@ public class SubsetByPyFT(ILogger? logger = null)
         {
             if (!file.Exists)
             {
-                throw new Exception($"Please check if font file {file} exists");
+                throw new Exception($"Please check if file {file} exists");
             }
         }
         if (!fontPath.Exists) { throw new Exception($"Please check if directory {fontPath} exists"); }
@@ -189,7 +189,7 @@ public class SubsetByPyFT(ILogger? logger = null)
                 assFontNameMap.TryAdd(afi.Name.StartsWith('@') ? afi.Name[1..] : afi.Name, kv.Value);
             }
         }
-
+        
         foreach (var style in ass.Styles.Collection)
         {
             if (assFontNameMap.TryGetValue(style.Fontname, out var newFn))
@@ -198,13 +198,22 @@ public class SubsetByPyFT(ILogger? logger = null)
             }
         }
 
+        var _list = assFontNameMap.Keys.ToList();
+        _list.Sort();
+        _list.Reverse();
+        Dictionary<string, string> assFontNameMap2 = [];
+        foreach (var k in _list)
+        {
+            assFontNameMap2.Add(k, assFontNameMap[k]);
+        }
+        
         foreach (var evt in ass.Events.Collection)
         {
             if (!evt.IsDialogue) { continue; }
             for (var i = 0; i < evt.Text.Count; i++)
             {
                 var span = evt.Text[i].AsSpan();
-                if (SpanReplace(ref span, assFontNameMap))
+                if (SpanReplace(ref span, assFontNameMap2))
                 {
                     evt.Text[i] = span.ToArray();
                 }
@@ -212,7 +221,7 @@ public class SubsetByPyFT(ILogger? logger = null)
         }
 
         List<string> subsetList = [];
-        foreach (var kv in assFontNameMap)
+        foreach (var kv in assFontNameMap2)
         {
             subsetList.Add(string.Format("Font Subset: {0} - {1}", kv.Value, kv.Key));
         }
@@ -222,7 +231,7 @@ public class SubsetByPyFT(ILogger? logger = null)
 
     private static bool SpanReplace(ref Span<char> span, Dictionary<string, string> nameMap)
     {
-        if (!AssTagParse.IsOvrrideBlock(span)) { return false; }
+        if (!AssTagParse.IsOverrideBlock(span)) { return false; }
 
         var changed = false;
         foreach (var kv in nameMap)
