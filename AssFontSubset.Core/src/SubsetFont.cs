@@ -2,7 +2,7 @@
 
 namespace AssFontSubset.Core;
 
-public class SubsetFont(FileInfo originalFontFile, uint index, List<Rune> runes)
+public class SubsetFont(FileInfo originalFontFile, uint index, HashSet<Rune> horRunes, HashSet<Rune> vertRunes)
 {
     private readonly FileInfo _originalFontFile = originalFontFile;
     public FileInfo OriginalFontFile
@@ -22,7 +22,9 @@ public class SubsetFont(FileInfo originalFontFile, uint index, List<Rune> runes)
     public readonly uint TrackIndex = index;
 
     //public List<string>? FontNameInAss;
-    public List<Rune> Runes = runes;
+    public HashSet<Rune> Runes = [];
+    private HashSet<Rune> horizontalRunes  = horRunes;
+    private HashSet<Rune> verticalRunes = vertRunes;
 
     //public string? OriginalFamilyName;
     public string? RandomNewName;
@@ -55,9 +57,9 @@ public class SubsetFont(FileInfo originalFontFile, uint index, List<Rune> runes)
     {
         //var chars = new List<Rune>();
         //var emojis = new List<Rune>();
-        var runes = new List<Rune>();
+        var runes = new HashSet<Rune>();
 
-        foreach (var rune in Runes)
+        foreach (var rune in horizontalRunes)
         {
             if (rune.IsBmp)
             {
@@ -65,9 +67,26 @@ public class SubsetFont(FileInfo originalFontFile, uint index, List<Rune> runes)
                 {
                     continue;
                 }
-                else
+                runes.Add(rune);
+            }
+            else
+            {
+                runes.Add(rune);
+            }
+        }
+        
+        foreach (var rune in verticalRunes)
+        {
+            if (rune.IsBmp)
+            {
+                if (Rune.IsDigit(rune) || char.IsAsciiLetter((char)rune.Value) || (rune.Value >= 0xFF10 && rune.Value <= 0xFF19))
                 {
-                    runes.Add(rune);
+                    continue;
+                }
+                runes.Add(rune);
+                if (FontConstant.VertMapping.TryGetValue((char)rune.Value, out var vertChar))
+                {
+                    runes.Add(new Rune(vertChar));
                 }
             }
             else
@@ -75,31 +94,37 @@ public class SubsetFont(FileInfo originalFontFile, uint index, List<Rune> runes)
                 runes.Add(rune);
             }
         }
+
         AppendNecessaryRunes(runes);
         Runes = runes;
     }
 
     /// <summary>
-    /// Subset all half-width letters and digits, will fix font fallback on ellipsis
-    /// Subset all half-width digits
+    /// Subset all half-width and full-width letters and digits, will fix font fallback on ellipsis
     /// </summary>
     /// <param name="runes"></param>
-    private static void AppendNecessaryRunes(List<Rune> runes)
+    private static void AppendNecessaryRunes(HashSet<Rune> runes)
     {
         // letters
         // Uppercase Latin alphabet
         for (var i = 0x0041; i <= 0x005A; i++)
         {
             runes.Add(new Rune(i));
+            runes.Add(new Rune(i + 65248));
         }
+
+        // I don’t know why
+        runes.Add(new Rune(0xFF1F));
+        runes.Add(new Rune(0xFF20));
+        
         // Lowercase Latin alphabet
         for (var i = 0x0061; i <= 0x007A; i++)
         {
             runes.Add(new Rune(i));
+            runes.Add(new Rune(i + 65248));
         }
 
         // digits
-        // half-width and full-width
         for (var i = 0x0030; i <= 0x0039; i++)
         {
             runes.Add(new Rune(i));

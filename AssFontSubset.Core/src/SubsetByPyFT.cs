@@ -147,14 +147,27 @@ public class SubsetByPyFT(ILogger? logger = null)
         Dictionary<string, List<SubsetFont>> subsetFonts = [];
         foreach (var kv in fontMap)
         {
-            var runes = kv.Value.Count > 1 ? kv.Value.SelectMany(i => assFonts[i]).ToHashSet().ToList() : assFonts[kv.Value[0]];
-            //subsetFonts.Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, runes) { OriginalFamilyName = kv.Key.FamilyName });
+            // var runes = kv.Value.Count > 1 ? kv.Value.SelectMany(i => assFonts[i]).ToHashSet().ToList() : assFonts[kv.Value[0]];
+            HashSet<Rune> horRunes = [];
+            HashSet<Rune> vertRunes = [];
+            foreach (var afi in kv.Value)
+            {
+                if (afi.Name.StartsWith('@'))
+                {
+                    vertRunes.UnionWith(assFonts[afi]);
+                }
+                else
+                {
+                    horRunes.UnionWith(assFonts[afi]);
+                }
+            }
 
+            //subsetFonts.Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, runes) { OriginalFamilyName = kv.Key.FamilyName });
             if (!subsetFonts.TryGetValue(kv.Key.FamilyName, out var _))
             {
                 subsetFonts.Add(kv.Key.FamilyName, []);
             }
-            subsetFonts[kv.Key.FamilyName].Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, runes));
+            subsetFonts[kv.Key.FamilyName].Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, horRunes, vertRunes));
         }
         _logger?.ZLogDebug($"Convert completed");
 
