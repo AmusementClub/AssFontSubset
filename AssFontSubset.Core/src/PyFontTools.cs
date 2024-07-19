@@ -267,7 +267,8 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
             "--name-languages=*",
             $"--font-number={ssf.TrackIndex}",
             // "--no-layout-closure",
-            $"--layout-features={string.Join(",", enableFeatures)}"
+            $"--layout-features={string.Join(",", enableFeatures)}",
+            "--no-prune-codepage-ranges"    // Affects VSFilter vertical layout, it can’t find correct fonts when change OS/2 ulCodePageRange*
         ];
         foreach (var arg in argus)
         {
