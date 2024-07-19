@@ -257,9 +257,9 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
         // GDI doesn’t seem to use any features (may use vert?), and it has its own logic for handling vertical layout.
         // https://github.com/libass/libass/pull/702
         // libass seems to be trying to use features like vert/vrt2 to solve this problem.
-        // These are features related to vertical layout but are not enabled: "vchw", "vhal", "vkrn", "vpal", "vrtr". Maybe "vrt2" is also not used.
+        // These are features related to vertical layout but are not enabled: "vrt2", "vchw", "vhal", "vkrn", "vpal", "vrtr".
         // https://github.com/libass/libass/blob/6e83137cdbaf4006439d526fef902e123129707b/libass/ass_shaper.c#L147
-        string[] enableFeatures = ["vert", "vrt2", "vkna"];
+        string[] enableFeatures = ["vert", "vkna"];
         string[] argus = [
             ssf.OriginalFontFile.FullName,
             $"--text-file={ssf.CharactersFile!}",
@@ -267,7 +267,7 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
             "--name-languages=*",
             $"--font-number={ssf.TrackIndex}",
             // "--no-layout-closure",
-            $"--layout-features='{string.Join(',', enableFeatures)}'"
+            $"--layout-features={string.Join(",", enableFeatures)}"
         ];
         foreach (var arg in argus)
         {
