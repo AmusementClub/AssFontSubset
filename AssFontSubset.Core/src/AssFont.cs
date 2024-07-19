@@ -123,8 +123,8 @@ public class AssFont
         }
         else
         {
-            var minimalWeight = fig.Select(fig => fig.Weight).Min();
-            var hadItalic = fig.Select(fig => fig.Italic is true).Count() > 0;
+            var minimalWeight = fig.Select(fi => fi.Weight).Min();
+            var hadItalic = fig.Select(fi => fi.Italic is true).Any();
             foreach (var fi in fig)
             {
                 if (IsMatch(afi, fi, false, minimalWeight, hadItalic, logger)) { return fi; }
