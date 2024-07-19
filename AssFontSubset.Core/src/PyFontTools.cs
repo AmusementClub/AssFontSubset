@@ -255,11 +255,12 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
         var startInfo = GetSimpleCmd(_pyftsubset);
         
         // GDI doesn’t seem to use any features (may use vert?), and it has its own logic for handling vertical layout.
+        // By testing, enable vrt2 is necessary when use GDI
         // https://github.com/libass/libass/pull/702
-        // libass seems to be trying to use features like vert/vrt2 to solve this problem.
-        // These are features related to vertical layout but are not enabled: "vrt2", "vchw", "vhal", "vkrn", "vpal", "vrtr".
+        // libass seems to be trying to use features like vert to solve this problem.
+        // These are features related to vertical layout but are not enabled: "vchw", "vhal", "vkrn", "vpal", "vrtr".
         // https://github.com/libass/libass/blob/6e83137cdbaf4006439d526fef902e123129707b/libass/ass_shaper.c#L147
-        string[] enableFeatures = ["vert", "vkna"];
+        string[] enableFeatures = ["vert", "vkna", "vrt2"];
         string[] argus = [
             ssf.OriginalFontFile.FullName,
             $"--text-file={ssf.CharactersFile!}",
@@ -268,7 +269,8 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
             $"--font-number={ssf.TrackIndex}",
             // "--no-layout-closure",
             $"--layout-features={string.Join(",", enableFeatures)}",
-            "--no-prune-codepage-ranges"    // Affects VSFilter vertical layout, it can’t find correct fonts when change OS/2 ulCodePageRange*
+            // "--layout-features=*",
+            // "--no-prune-codepage-ranges"    // Affects VSFilter vertical layout, it can’t find correct fonts when change OS/2 ulCodePageRange*
         ];
         foreach (var arg in argus)
         {
