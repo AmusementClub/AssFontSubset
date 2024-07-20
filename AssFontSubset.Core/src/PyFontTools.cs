@@ -306,6 +306,11 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
     {
         var startInfo = GetSimpleCmd(_ttx);
         startInfo.ArgumentList.Add("-f");
+        
+        // https://github.com/libass/libass/issues/619#issuecomment-1244561188
+        // Don’t recalc glyph bounding boxes
+        startInfo.ArgumentList.Add("-b");
+        
         startInfo.ArgumentList.Add(ssf.SubsetFontTtxTemp!);
         startInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
         return startInfo;
