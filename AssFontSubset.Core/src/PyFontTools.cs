@@ -255,12 +255,20 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
         var startInfo = GetSimpleCmd(_pyftsubset);
         
         // GDI doesn’t seem to use any features (may use vert?), and it has its own logic for handling vertical layout.
-        // By testing, enable vrt2 is necessary when use GDI
+        // https://learn.microsoft.com/en-us/typography/opentype/spec/features_uz#tag-vrt2
+        // GDI may according it:
+        // OpenType font with CFF outlines to be used for vertical writing must have vrt2, otherwise fallback
+        // OpenType font without CFF outlines use vert map default glyphs to vertical writing glyphs
+        
         // https://github.com/libass/libass/pull/702
         // libass seems to be trying to use features like vert to solve this problem.
         // These are features related to vertical layout but are not enabled: "vchw", "vhal", "vkrn", "vpal", "vrtr".
         // https://github.com/libass/libass/blob/6e83137cdbaf4006439d526fef902e123129707b/libass/ass_shaper.c#L147
-        string[] enableFeatures = ["vert", "vkna", "vrt2"];
+        string[] enableFeatures = [
+            "vert", "vrtr",
+            "vrt2",
+            "vkna",
+        ];
         string[] argus = [
             ssf.OriginalFontFile.FullName,
             $"--text-file={ssf.CharactersFile!}",
@@ -270,7 +278,10 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
             // "--no-layout-closure",
             $"--layout-features={string.Join(",", enableFeatures)}",
             // "--layout-features=*",
-            // "--no-prune-codepage-ranges"    // Affects VSFilter vertical layout, it can’t find correct fonts when change OS/2 ulCodePageRange*
+            
+            // Affects VSFilter vertical layout, it can’t find correct fonts when change OS/2 ulCodePageRange*
+            // Perhaps it only works with OpenType font that don’t have CFF outlines
+            "--no-prune-codepage-ranges"
         ];
         foreach (var arg in argus)
         {
