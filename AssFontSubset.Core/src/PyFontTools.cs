@@ -14,17 +14,15 @@ public struct SubsetConfig
 
 public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 {
-    private readonly string _pyftsubset = pyftsubset;
-    private readonly string _ttx = ttx;
-    private string pyFtVersion = string.Empty;
-    private readonly ILogger? _logger = logger;
+    private Version pyFtVersion = GetFontToolsVersion(ttx);
+
     public SubsetConfig Config;
     public Stopwatch? sw;
     private long timer;
 
     public void SubsetFonts(List<SubsetFont> subsetFonts, string outputFolder)
     {
-        GetFontToolsVersion();
+        logger?.ZLogInformation($"Font subset use pyFontTools {pyFtVersion}");
         var randoms = SubsetFont.GenerateRandomStrings(8, subsetFonts.Count);
         var num = 0;
         foreach (var subsetFont in subsetFonts)
@@ -46,10 +44,10 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 
     public void SubsetFonts(Dictionary<string, List<SubsetFont>> subsetFonts, string outputFolder, out Dictionary<string, string> nameMap)
     {
-        _logger?.ZLogInformation($"Start subset font");
-        GetFontToolsVersion();
+        logger?.ZLogInformation($"Start subset font");
+        logger?.ZLogInformation($"Font subset use pyFontTools {pyFtVersion}");
         nameMap = [];
-        _logger?.ZLogDebug($"Generate randomly non repeating font names");
+        logger?.ZLogDebug($"Generate randomly non repeating font names");
         var randoms = SubsetFont.GenerateRandomStrings(8, subsetFonts.Keys.Count);
 
         var i = 0;
@@ -59,13 +57,13 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
             foreach (var subsetFont in kv.Value)
             {
                 subsetFont.RandomNewName = randoms[i];
-                _logger?.ZLogInformation($"Start subset {subsetFont.OriginalFontFile.Name}");
+                logger?.ZLogInformation($"Start subset {subsetFont.OriginalFontFile.Name}");
                 timer = 0;
                 CreateFontSubset(subsetFont, outputFolder);
                 DumpFont(subsetFont);
                 ChangeXmlFontName(subsetFont);
                 CompileFont(subsetFont);
-                _logger?.ZLogInformation($"Subset font completed, use {timer} ms");
+                logger?.ZLogInformation($"Subset font completed, use {timer} ms");
 
                 if (!Config.DebugMode)
                 {
@@ -103,11 +101,11 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 
     private void DeleteTempFiles(SubsetFont ssf)
     {
-        _logger?.ZLogDebug($"Start delete temp files：{Environment.NewLine}temp subset font files：{ssf.SubsetFontFileTemp}{Environment.NewLine}ttx files：{ssf.SubsetFontTtxTemp}{Environment.NewLine}glyphs files：{ssf.CharactersFile}");
+        logger?.ZLogDebug($"Start delete temp files：{Environment.NewLine}temp subset font files：{ssf.SubsetFontFileTemp}{Environment.NewLine}ttx files：{ssf.SubsetFontTtxTemp}{Environment.NewLine}glyphs files：{ssf.CharactersFile}");
         File.Delete(ssf.SubsetFontFileTemp!);
         File.Delete(ssf.SubsetFontTtxTemp!);
         File.Delete(ssf.CharactersFile!);
-        _logger?.ZLogDebug($"Clean completed");
+        logger?.ZLogDebug($"Clean completed");
     }
 
     private void ChangeXmlFontName(SubsetFont font)
@@ -199,33 +197,33 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
         var success = true;
         sw.Start();
         using var process = Process.Start(startInfo);
-        _logger?.ZLogDebug($"Start command: {startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
+        logger?.ZLogDebug($"Start command: {startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
 
         if (process != null)
         {
             var output = process.StandardOutput.ReadToEnd();
             var errorOutput = process.StandardError.ReadToEnd();
 
-            _logger?.ZLogDebug($"Executing...");
+            logger?.ZLogDebug($"Executing...");
             process.WaitForExit();
             var exitCode = process.ExitCode;
             sw.Stop();
 
             if (exitCode != 0)
             {
-                _logger?.ZLogError($"Return exitcode {exitCode}，error output: {errorOutput}");
+                logger?.ZLogError($"Return exitcode {exitCode}，error output: {errorOutput}");
                 success = false;
             }
             else
             {
-                _logger?.ZLogDebug($"Successfully executed, use {sw.ElapsedMilliseconds} ms");
+                logger?.ZLogDebug($"Successfully executed, use {sw.ElapsedMilliseconds} ms");
             }
             timer += sw.ElapsedMilliseconds;
         }
         else
         {
             success = false;
-            _logger?.ZLogDebug($"Process not start");
+            logger?.ZLogDebug($"Process not start");
         }
 
         sw.Reset();
@@ -252,7 +250,7 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 
     private ProcessStartInfo GetSubsetCmd(SubsetFont ssf)
     {
-        var startInfo = GetSimpleCmd(_pyftsubset);
+        var startInfo = GetSimpleCmd(pyftsubset);
         
         // GDI doesn’t seem to use any features (may use vert?), and it has its own logic for handling vertical layout.
         // https://learn.microsoft.com/en-us/typography/opentype/spec/features_uz#tag-vrt2
@@ -278,22 +276,27 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
             // "--no-layout-closure",
             $"--layout-features={string.Join(",", enableFeatures)}",
             // "--layout-features=*",
-            
-            // Affects VSFilter vertical layout, it can’t find correct fonts when change OS/2 ulCodePageRange*
-            // Perhaps it only works with OpenType font that don’t have CFF outlines
-            "--no-prune-codepage-ranges"
         ];
         foreach (var arg in argus)
         {
             startInfo.ArgumentList.Add(arg);
         }
+
+        if (pyFtVersion > new Version("4.44.0"))
+        {
+            // https://github.com/fonttools/fonttools/releases/tag/4.44.1
+            // Affects VSFilter vertical layout, it can’t find correct fonts when change OS/2 ulCodePageRange*
+            // Perhaps it only works with OpenType font that don’t have CFF outlines
+            startInfo.ArgumentList.Add("--no-prune-codepage-ranges");
+        }
+        
         startInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
         return startInfo;
     }
 
     private ProcessStartInfo GetDumpFontCmd(SubsetFont ssf)
     {
-        var startInfo = GetSimpleCmd(_ttx);
+        var startInfo = GetSimpleCmd(ttx);
         startInfo.ArgumentList.Add("-f");
         startInfo.ArgumentList.Add("-o");
         startInfo.ArgumentList.Add(ssf.SubsetFontTtxTemp!);
@@ -304,7 +307,7 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 
     private ProcessStartInfo GetCompileFontCmd(SubsetFont ssf)
     {
-        var startInfo = GetSimpleCmd(_ttx);
+        var startInfo = GetSimpleCmd(ttx);
         startInfo.ArgumentList.Add("-f");
         
         // https://github.com/libass/libass/issues/619#issuecomment-1244561188
@@ -316,20 +319,22 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
         return startInfo;
     }
 
-    private void GetFontToolsVersion()
+    private static Version GetFontToolsVersion(string ttxPath)
     {
-        var startInfo = GetSimpleCmd(_ttx);
+        Version version;
+        var startInfo = GetSimpleCmd(ttxPath);
         startInfo.ArgumentList.Add("--version");
         using var process = Process.Start(startInfo);
         if (process != null)
         {
-            pyFtVersion = process.StandardOutput.ReadToEnd().Trim('\n');
+            version = new Version(process.StandardOutput.ReadToEnd().Trim('\n'));
             process.WaitForExit();
-            _logger?.ZLogInformation($"Font subset use pyFontTools {pyFtVersion}");
         }
         else
         {
             throw new Exception($"Command execution failed: {startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
         }
+
+        return version;
     }
 }
