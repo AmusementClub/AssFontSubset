@@ -114,7 +114,7 @@ public class SubsetByPyFT(ILogger? logger = null)
         fontMap = [];
         List<AssFontInfo> matchedAssFontInfos = [];
 
-        var fiGroups = fontInfos.GroupBy(fontInfo => fontInfo.FamilyName);
+        var fiGroups = fontInfos.GroupBy(fontInfo => fontInfo.FamilyNames[FontConstant.LanguageIdEnUs]);
         foreach (var fig in fiGroups)
         {
             foreach (var afi in assFonts.Keys)
@@ -163,11 +163,12 @@ public class SubsetByPyFT(ILogger? logger = null)
             }
 
             //subsetFonts.Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, runes) { OriginalFamilyName = kv.Key.FamilyName });
-            if (!subsetFonts.TryGetValue(kv.Key.FamilyName, out var _))
+            var _famName = kv.Key.FamilyNames[FontConstant.LanguageIdEnUs];
+            if (!subsetFonts.TryGetValue(_famName, out var _))
             {
-                subsetFonts.Add(kv.Key.FamilyName, []);
+                subsetFonts.Add(_famName, []);
             }
-            subsetFonts[kv.Key.FamilyName].Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, horRunes, vertRunes));
+            subsetFonts[_famName].Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, horRunes, vertRunes));
         }
         _logger?.ZLogDebug($"Convert completed");
 
@@ -183,7 +184,7 @@ public class SubsetByPyFT(ILogger? logger = null)
         Dictionary<string, string> assFontNameMap = [];
         foreach (var (kv, kv2) in from kv in nameMap
                                   from kv2 in fontMap
-                                  where kv2.Key.FamilyName == kv.Key
+                                  where kv2.Key.FamilyNames.ContainsValue(kv.Key)
                                   select (kv, kv2))
         {
             foreach (var afi in kv2.Value)

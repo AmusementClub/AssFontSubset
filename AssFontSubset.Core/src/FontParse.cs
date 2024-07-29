@@ -4,8 +4,7 @@ namespace AssFontSubset.Core;
 
 public struct FontInfo
 {
-    public string FamilyName;
-    public string FamilyNameChs;
+    public Dictionary<int, string> FamilyNames;
     //public bool Regular;
     public bool Bold;
     public bool Italic;
@@ -18,8 +17,7 @@ public struct FontInfo
     public override bool Equals(object? obj)
     {
         return obj is FontInfo info &&
-               FamilyName == info.FamilyName &&
-               FamilyNameChs == info.FamilyNameChs &&
+               FamilyNames == info.FamilyNames &&
                //Regular == info.Regular &&
                Bold == info.Bold &&
                Italic == info.Italic &&
@@ -33,8 +31,7 @@ public struct FontInfo
     public override int GetHashCode()
     {
         HashCode hash = new HashCode();
-        hash.Add(FamilyName);
-        hash.Add(FamilyNameChs);
+        hash.Add(FamilyNames);
         //hash.Add(Regular);
         hash.Add(Bold);
         hash.Add(Italic);
@@ -70,10 +67,16 @@ public static class FontParse
     {
         var info = (FontFaceInfoOpenType)faceInfo;
         var fsSel = info.fsSelection;
+        var familyNamesNew = info.FamilyNamesGdi!; 
+        
+        if (!familyNamesNew.ContainsKey(FontConstant.LanguageIdEnUs))
+        {
+            familyNamesNew.Add(FontConstant.LanguageIdEnUs, familyNamesNew.FirstOrDefault().Value);
+        }
+        
         return new FontInfo
         {
-            FamilyName = info.FamilyNameGdi!,
-            FamilyNameChs = info.FamilyNameGdiChs!,
+            FamilyNames = familyNamesNew,
             //Regular = ((fsSel & 0b_0100_0000) >> 6) == 1,   // bit 6
             Bold = ((fsSel & 0b_0010_0000) >> 5) == 1, // bit 5
             Italic = (fsSel & 0b_1) == 1, // bit 0

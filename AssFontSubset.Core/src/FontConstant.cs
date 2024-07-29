@@ -42,4 +42,6 @@ public static class FontConstant
         { '\u005b', '\ufe47' },
         { '\u005d', '\ufe48' },
     };
+
+    public const int LanguageIdEnUs = 1033;
 }

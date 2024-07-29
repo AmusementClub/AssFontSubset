@@ -48,7 +48,7 @@ public class AssFont
         var italicMatch = false;
         if (!single) { if (minimalWeight is null || hadItalic is null) throw new ArgumentNullException(); }
 
-        logger?.ZLogDebug($"Try match {afi.ToString()} and {fi.FamilyName}_w{fi.Weight}_b{(fi.Bold ? 1 : 0)}_i{(fi.Italic ? 1 : 0)}");
+        logger?.ZLogDebug($"Try match {afi.ToString()} and {string.Join('|', fi.FamilyNames.Values.Distinct())}_w{fi.Weight}_b{(fi.Bold ? 1 : 0)}_i{(fi.Italic ? 1 : 0)}");
         switch (afi.Weight)
         {
             case 0:
@@ -95,7 +95,7 @@ public class AssFont
                 else
                 {
                     if (!(bool)hadItalic!) { italicMatch = true; }
-                    else if (!(fi.MaxpNumGlyphs < 6000 && fi.FamilyName == fi.FamilyNameChs))
+                    else if (!(fi.MaxpNumGlyphs < 6000 && !fi.FamilyNames.Keys.Any(key => key is 2052 or 1028 or 3076 or 5124)))
                     {
                         // maybe cjk fonts
                         italicMatch = true;
@@ -115,7 +115,7 @@ public class AssFont
     public static FontInfo? GetMatchedFontInfo(AssFontInfo afi, IGrouping<string, FontInfo> fig, ILogger? logger = null)
     {
         var assFn = afi.Name.StartsWith('@') ? afi.Name.AsSpan(1) : afi.Name.AsSpan();
-        if (!(assFn.SequenceEqual(fig.Key.AsSpan()) || assFn.SequenceEqual(fig.First().FamilyNameChs.AsSpan()))) { return null; }
+        if (!(assFn.SequenceEqual(fig.Key.AsSpan()) || fig.First().FamilyNames.ContainsValue(assFn.ToString()))) { return null; }
 
         if (fig.Count() == 1)
         {
