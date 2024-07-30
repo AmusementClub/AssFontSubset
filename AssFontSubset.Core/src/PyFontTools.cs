@@ -201,21 +201,25 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
 
         if (process != null)
         {
-            var output = process.StandardOutput.ReadToEnd();
+            var output = process.StandardOutput;
             var errorOutput = process.StandardError.ReadToEnd();
-
+            var outputStr = output.ReadToEnd();
+            
             logger?.ZLogDebug($"Executing...");
             process.WaitForExit();
             var exitCode = process.ExitCode;
+
+            var processTime = process.TotalProcessorTime;
             sw.Stop();
 
             if (exitCode != 0)
             {
-                logger?.ZLogError($"Return exitcode {exitCode}，error output: {errorOutput}");
+                logger?.ZLogError($"Return exitcode {exitCode}，error output: {outputStr}");
                 success = false;
             }
             else
             {
+                logger?.ZLogDebug($"Output:{Environment.NewLine}{errorOutput.TrimEnd()}");
                 logger?.ZLogDebug($"Successfully executed, use {sw.ElapsedMilliseconds} ms");
             }
             timer += sw.ElapsedMilliseconds;
@@ -231,7 +235,6 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
         {
             throw new Exception($"Command execution failed: {startInfo.FileName} {string.Join(' ', startInfo.ArgumentList)}");
         }
-        else { return; }
 
         //return success;
     }
