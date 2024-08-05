@@ -22,7 +22,7 @@ public class AssFont
             var undefinedStyles = new HashSet<string>();
             foreach (var und in undefinedStylesTemp)
             {
-                var usedUndStylesEvents = ass.Events.Collection.Where(e => e.Style == und);
+                var usedUndStylesEvents = ass.Events.Collection.Where(e => e.Style == und && e.IsDialogue);
                 var notUsed = true;
                 foreach (var evt in usedUndStylesEvents)
                 {
