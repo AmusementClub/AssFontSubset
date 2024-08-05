@@ -22,6 +22,21 @@ public class AssFont
             var undefinedStyles = new HashSet<string>();
             foreach (var und in undefinedStylesTemp)
             {
+                var usedUndStylesEvents = ass.Events.Collection.Where(e => e.Style == und);
+                var notUsed = true;
+                foreach (var evt in usedUndStylesEvents)
+                {
+                    if (evt.Text.Count == 0) continue;
+                    foreach (var blk in evt.Text)
+                    {
+                        if (!AssTagParse.IsOverrideBlock(blk))
+                        {
+                            notUsed = false;
+                        }
+                    }
+                }
+                if (notUsed) continue;
+                
                 if (ass.Styles.Names.Contains(und.TrimStart('*')))
                 {
                     // vsfilter ingore starting asterisk
