@@ -48,7 +48,7 @@ public class SubsetByPyFT(ILogger? logger = null)
         });
     }
 
-    List<FontInfo> GetFontInfoFromFiles(string dir)
+    IEnumerable<IGrouping<string, FontInfo>> GetFontInfoFromFiles(string dir)
     {
         string[] supportFonts = [".ttf", ".otf", ".ttc", "otc"];
         HashSet<string> HasTrueBoldOrItalicRecord = [];
@@ -63,7 +63,40 @@ public class SubsetByPyFT(ILogger? logger = null)
         _stopwatch.Stop();
         _logger?.ZLogDebug($"Font file scanning completed, use {_stopwatch.ElapsedMilliseconds} ms");
         _stopwatch.Reset();
-        return fontInfos;
+
+        if (TryCheckDuplicatFonts(fontInfos, out var fontInfoGroup))
+        {
+            throw new Exception($"Maybe have duplicate fonts in fonts directory");
+        }
+        
+        return fontInfoGroup;
+    }
+
+    bool TryCheckDuplicatFonts(List<FontInfo> fontInfos, out IEnumerable<IGrouping<string, FontInfo>> fontInfoGroup)
+    {
+        var dupFonts = false;
+        fontInfoGroup = fontInfos.GroupBy(fontInfo => fontInfo.FamilyNames[FontConstant.LanguageIdEnUs]);
+        foreach (var group in fontInfoGroup)
+        {
+            if (group.Count() <= 1) continue;
+            var groupWithoutFileNames = group.GroupBy(fi => new
+            {
+                fi.Bold,
+                fi.Italic,
+                fi.Weight,
+                fi.Index,
+                fi.MaxpNumGlyphs,
+                fi.FamilyNames
+            }).ToList();
+            
+            if (groupWithoutFileNames.Count > 1)
+            {
+                _logger?.ZLogError($"Duplicate fonts: {string.Join('、', groupWithoutFileNames.SelectMany(x => x.Select(fi=>fi.FileName)))}");
+                dupFonts = true;
+            }
+        }
+
+        return dupFonts;
     }
 
     Dictionary<AssFontInfo, List<Rune>> GetAssFontInfoFromFiles(FileInfo[] assFiles, string optDir, out Dictionary<string, AssData> assDataWithOutputName)
@@ -105,7 +138,7 @@ public class SubsetByPyFT(ILogger? logger = null)
         return multiAssFonts;
     }
 
-    Dictionary<string, List<SubsetFont>> GetSubsetFonts(List<FontInfo> fontInfos, Dictionary<AssFontInfo, List<Rune>> assFonts, out Dictionary<FontInfo, List<AssFontInfo>> fontMap)
+    Dictionary<string, List<SubsetFont>> GetSubsetFonts(IEnumerable<IGrouping<string, FontInfo>> fontInfos, Dictionary<AssFontInfo, List<Rune>> assFonts, out Dictionary<FontInfo, List<AssFontInfo>> fontMap)
     {
         _logger?.ZLogInformation($"Start generate subset font info");
         _stopwatch.Start();
@@ -114,8 +147,8 @@ public class SubsetByPyFT(ILogger? logger = null)
         fontMap = [];
         List<AssFontInfo> matchedAssFontInfos = [];
 
-        var fiGroups = fontInfos.GroupBy(fontInfo => fontInfo.FamilyNames[FontConstant.LanguageIdEnUs]);
-        foreach (var fig in fiGroups)
+        // var fiGroups = fontInfos.GroupBy(fontInfo => fontInfo.FamilyNames[FontConstant.LanguageIdEnUs]);
+        foreach (var fig in fontInfos)
         {
             foreach (var afi in assFonts.Keys)
             {
