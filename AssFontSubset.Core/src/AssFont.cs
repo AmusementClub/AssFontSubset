@@ -54,7 +54,7 @@ public class AssFont
             }
         }
 
-        return AssFontParse.GetUsedFontInfos(ass.Events.Collection, ass.Styles.Collection, logger);
+        return new AssFontParse(ass.Events.Collection, ass.Styles.Collection, logger).GetUsedFontInfos();
     }
 
     public static bool IsMatch(AssFontInfo afi, FontInfo fi, bool single, int? minimalWeight = null, bool? hadItalic = null, ILogger? logger = null)
