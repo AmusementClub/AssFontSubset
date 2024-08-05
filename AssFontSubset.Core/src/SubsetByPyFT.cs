@@ -72,7 +72,7 @@ public class SubsetByPyFT(ILogger? logger = null)
         return fontInfoGroup;
     }
 
-    bool TryCheckDuplicatFonts(List<FontInfo> fontInfos, out IEnumerable<IGrouping<string, FontInfo>> fontInfoGroup)
+    private bool TryCheckDuplicatFonts(List<FontInfo> fontInfos, out IEnumerable<IGrouping<string, FontInfo>> fontInfoGroup)
     {
         var dupFonts = false;
         fontInfoGroup = fontInfos.GroupBy(fontInfo => fontInfo.FamilyNames[FontConstant.LanguageIdEnUs]);
@@ -86,12 +86,12 @@ public class SubsetByPyFT(ILogger? logger = null)
                 fi.Weight,
                 fi.Index,
                 fi.MaxpNumGlyphs,
-                fi.FamilyNames
-            }).ToList();
-            
-            if (groupWithoutFileNames.Count > 1)
+            });
+
+            foreach (var g in groupWithoutFileNames)
             {
-                _logger?.ZLogError($"Duplicate fonts: {string.Join('、', groupWithoutFileNames.SelectMany(x => x.Select(fi=>fi.FileName)))}");
+                if (g.Count() <= 1) continue;
+                _logger?.ZLogError($"Duplicate fonts: {string.Join('、', g.Select(x => x.FileName))}");
                 dupFonts = true;
             }
         }
