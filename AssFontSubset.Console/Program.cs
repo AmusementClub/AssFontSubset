@@ -105,8 +105,8 @@ internal class Program
 
                         template.Format(escapeSequence, info.Timestamp, info.LogLevel);
                     });
-                    
                 });
+                options.LogToStandardErrorThreshold = LogLevel.Warning;
             });
         });
         var logger = factory.CreateLogger("AssFontSubset.Console");
