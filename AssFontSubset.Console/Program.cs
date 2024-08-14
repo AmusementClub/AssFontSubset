@@ -9,24 +9,68 @@ internal class Program
 {
     static async Task<int> Main(string[] args)
     {
-        var path = new Argument<FileInfo[]>(name: "path", description: "要子集化的 ASS 字幕文件路径，可以输入多个同目录的字幕文件");
-        var fontPath = new Option<DirectoryInfo>(name: "--fonts", description: "ASS 字幕文件需要的字体所在目录，默认为 ASS 同目录的 fonts 文件夹");
-        var outputPath = new Option<DirectoryInfo>(name: "--output", description: "子集化后成品所在目录，默认为 ASS 同目录的 output 文件夹");
-        var binPath = new Option<DirectoryInfo>(name: "--bin-path", description: "指定 pyftsubset 和 ttx 所在目录。若未指定，会使用环境变量中的");
-        var sourceHanEllipsis = new Option<bool>(name: "--source-han-ellipsis", description: "使思源黑体和宋体的省略号居中对齐", getDefaultValue: () => true);
-        var debug = new Option<bool>(name: "--debug", description: "保留子集化期间的各种临时文件，位于 --output-dir 指定的文件夹；同时打印出所有运行的命令", getDefaultValue: () => false);
+        var path = new CliArgument<FileInfo[]>("path")
+        {
+            Description = "要子集化的 ASS 字幕文件路径，可以输入多个同目录的字幕文件"
+        };
+        var fontPath = new CliOption<DirectoryInfo>("--fonts")
+        {
+            Description = "ASS 字幕文件需要的字体所在目录，默认为 ASS 同目录的 fonts 文件夹"
+        };
+        var outputPath = new CliOption<DirectoryInfo>("--output")
+        {
+            Description = "子集化后成品所在目录，默认为 ASS 同目录的 output 文件夹"
+        };
+        var binPath = new CliOption<DirectoryInfo>("--bin-path")
+        {
+            Description = "指定 pyftsubset 和 ttx 所在目录。若未指定，会使用环境变量中的"
+        };
+        var sourceHanEllipsis = new CliOption<bool>("--source-han-ellipsis")
+        {
+            Description = "使思源黑体和宋体的省略号居中对齐",
+            DefaultValueFactory = _ => true,
+        };
+        var debug = new CliOption<bool>("--debug")
+        {
+            Description = "保留子集化期间的各种临时文件，位于 --output-dir 指定的文件夹；同时打印出所有运行的命令",
+            DefaultValueFactory = _ => false,
+        };
 
-        var rootCommand = new RootCommand("使用 fonttools 生成 ASS 字幕文件的字体子集，并自动修改字体名称及 ASS 文件中对应的字体名称")
+        var rootCommand = new CliRootCommand("使用 fonttools 生成 ASS 字幕文件的字体子集，并自动修改字体名称及 ASS 文件中对应的字体名称")
         {
             path, fontPath, outputPath, binPath, sourceHanEllipsis, debug
         };
 
-        rootCommand.SetHandler(Subset, path, fontPath, outputPath, binPath, sourceHanEllipsis, debug);
+        rootCommand.SetAction(async (result, _) =>
+        {
+            await Subset(
+                result.GetValue(path)!,
+                result.GetValue(fontPath),
+                result.GetValue(outputPath),
+                result.GetValue(binPath),
+                result.GetValue(sourceHanEllipsis),
+                result.GetValue(debug)
+            );
+        });
+        var config = new CliConfiguration(rootCommand)
+        {
+            EnableDefaultExceptionHandler = false,
+        };
 
-        return await rootCommand.InvokeAsync(args);
+        int exitCode;
+        try
+        {
+            exitCode = await rootCommand.Parse(args, config).InvokeAsync();
+        }
+        catch (Exception)
+        {
+            exitCode = 1;
+        }
+        
+        return exitCode;
     }
 
-    static void Subset(FileInfo[] path, DirectoryInfo? fontPath, DirectoryInfo? outputPath, DirectoryInfo? binPath, bool sourceHanEllipsis, bool debug)
+    static async Task Subset(FileInfo[] path, DirectoryInfo? fontPath, DirectoryInfo? outputPath, DirectoryInfo? binPath, bool sourceHanEllipsis, bool debug)
     {
         var subsetConfig = new SubsetConfig
         {
@@ -61,16 +105,23 @@ internal class Program
         });
         var logger = factory.CreateLogger("AssFontSubset.Console");
 
+        if (path.Length == 0)
+        {
+            logger.ZLogError($"Please input ass files\u001b[0m");
+            throw new ArgumentException();
+        }
+
         var ssFt = new SubsetByPyFT(logger);
         try
         {
-            ssFt.SubsetAsync(path, fontPath, outputPath, binPath, subsetConfig).Wait();
+            await ssFt.SubsetAsync(path, fontPath, outputPath, binPath, subsetConfig);
         }
         catch (Exception ex) 
         {
-            logger.ZLogError($"{ex.Message}");
+            logger.ZLogError($"{ex.Message}\u001b[0m");
             logger.ZLogInformation($"Press Any key to exit");
             System.Console.ReadKey();
+            throw;
         };
     }
 }
