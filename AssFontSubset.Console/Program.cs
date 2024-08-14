@@ -5,7 +5,7 @@ using ZLogger;
 
 namespace AssFontSubset.Console;
 
-internal class Program
+internal static class Program
 {
     static async Task<int> Main(string[] args)
     {
@@ -126,6 +126,6 @@ internal class Program
         {
             logger.ZLogError($"{ex.Message}\u001b[0m");
             throw;
-        };
+        }
     }
 }
