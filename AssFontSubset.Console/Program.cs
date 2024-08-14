@@ -67,6 +67,12 @@ internal class Program
             exitCode = 1;
         }
         
+        if (!System.Console.IsOutputRedirected)
+        {
+            System.Console.WriteLine("Press Any key to exit...");
+            System.Console.ReadKey();
+        }
+        
         return exitCode;
     }
 
@@ -119,8 +125,6 @@ internal class Program
         catch (Exception ex) 
         {
             logger.ZLogError($"{ex.Message}\u001b[0m");
-            logger.ZLogInformation($"Press Any key to exit");
-            System.Console.ReadKey();
             throw;
         };
     }
