@@ -66,13 +66,11 @@ internal static class Program
         {
             exitCode = 1;
         }
-        
-        if (!System.Console.IsOutputRedirected)
-        {
-            System.Console.WriteLine("Press Any key to exit...");
-            System.Console.ReadKey();
-        }
-        
+
+        if (System.Console.IsOutputRedirected || System.Console.IsErrorRedirected) return exitCode;
+        System.Console.WriteLine("Press Any key to exit...");
+        System.Console.ReadKey();
+
         return exitCode;
     }
 
