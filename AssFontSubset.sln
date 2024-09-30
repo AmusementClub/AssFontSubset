@@ -11,10 +11,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AssFontSubset.Avalonia", "A
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AssFontSubset.Core.Tests", "AssFontSubset.CoreTests\AssFontSubset.Core.Tests.csproj", "{E003AA3B-7C95-4FA3-AB7D-529B71BBD85D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SubtitleParse", "submodules\Mobsub\SubtitleParse\SubtitleParse.csproj", "{42D37B59-9FB2-463D-91A9-DABD03BFF80A}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Helper", "submodules\Mobsub\Helper\Helper.csproj", "{C5F73D44-CF5D-4BE0-997B-D6892AAB2477}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,14 +33,6 @@ Global
 		{E003AA3B-7C95-4FA3-AB7D-529B71BBD85D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E003AA3B-7C95-4FA3-AB7D-529B71BBD85D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E003AA3B-7C95-4FA3-AB7D-529B71BBD85D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{42D37B59-9FB2-463D-91A9-DABD03BFF80A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{42D37B59-9FB2-463D-91A9-DABD03BFF80A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{42D37B59-9FB2-463D-91A9-DABD03BFF80A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{42D37B59-9FB2-463D-91A9-DABD03BFF80A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C5F73D44-CF5D-4BE0-997B-D6892AAB2477}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C5F73D44-CF5D-4BE0-997B-D6892AAB2477}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C5F73D44-CF5D-4BE0-997B-D6892AAB2477}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C5F73D44-CF5D-4BE0-997B-D6892AAB2477}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

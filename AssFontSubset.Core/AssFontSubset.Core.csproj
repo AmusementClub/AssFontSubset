@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\submodules\Mobsub\SubtitleParse\SubtitleParse.csproj" />
+    <PackageReference Include="Mobsub.Helper" Version="0.0.1" />
+    <PackageReference Include="Mobsub.SubtitleParse" Version="0.4.0" />
   </ItemGroup>
 
   <Import Project="..\build\global.props" />
