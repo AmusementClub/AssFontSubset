@@ -9,7 +9,6 @@ namespace AssFontSubset.Core;
 
 public class SubsetByPyFT(ILogger? logger = null)
 {
-    private readonly ILogger? _logger = logger;
     private static readonly Stopwatch _stopwatch = new();
 
     public async Task SubsetAsync(FileInfo[] path, DirectoryInfo? fontPath, DirectoryInfo? outputPath, DirectoryInfo? binPath, SubsetConfig subsetConfig)
@@ -35,7 +34,7 @@ public class SubsetByPyFT(ILogger? logger = null)
         await Task.Run(() =>
         {
             var fontInfos = GetFontInfoFromFiles(fontDir);
-            var pyFT = new PyFontTools(pyftsubset, ttx, _logger) { Config = subsetConfig, sw = _stopwatch };
+            var pyFT = new PyFontTools(pyftsubset, ttx, logger) { Config = subsetConfig, sw = _stopwatch };
             var assFonts = GetAssFontInfoFromFiles(path, optDir, out var assMulti);
             var subsetFonts = GetSubsetFonts(fontInfos, assFonts, out var fontMap);
             pyFT.SubsetFonts(subsetFonts, optDir, out var nameMap);
@@ -48,20 +47,20 @@ public class SubsetByPyFT(ILogger? logger = null)
         });
     }
 
-    IEnumerable<IGrouping<string, FontInfo>> GetFontInfoFromFiles(string dir)
+    private IEnumerable<IGrouping<string, FontInfo>> GetFontInfoFromFiles(string dir)
     {
         string[] supportFonts = [".ttf", ".otf", ".ttc", "otc"];
-        HashSet<string> HasTrueBoldOrItalicRecord = [];
+        // HashSet<string> HasTrueBoldOrItalicRecord = [];
 
-        _logger?.ZLogInformation($"Start scan valid font files in {dir}");
-        _logger?.ZLogInformation($"Support font file extension: {string.Join(", ", supportFonts)}");
+        logger?.ZLogInformation($"Start scan valid font files in {dir}");
+        logger?.ZLogInformation($"Support font file extension: {string.Join(", ", supportFonts)}");
         _stopwatch.Start();
         
         var dirInfo = new DirectoryInfo(dir);
         var fontInfos = FontParse.GetFontInfos(dirInfo);
         
         _stopwatch.Stop();
-        _logger?.ZLogDebug($"Font file scanning completed, use {_stopwatch.ElapsedMilliseconds} ms");
+        logger?.ZLogDebug($"Font file scanning completed, use {_stopwatch.ElapsedMilliseconds} ms");
         _stopwatch.Reset();
 
         if (TryCheckDuplicatFonts(fontInfos, out var fontInfoGroup))
@@ -91,7 +90,7 @@ public class SubsetByPyFT(ILogger? logger = null)
             foreach (var g in groupWithoutFileNames)
             {
                 if (g.Count() <= 1) continue;
-                _logger?.ZLogError($"Duplicate fonts: {string.Join('、', g.Select(x => x.FileName))}");
+                logger?.ZLogError($"Duplicate fonts: {string.Join('、', g.Select(x => x.FileName))}");
                 dupFonts = true;
             }
         }
@@ -99,25 +98,25 @@ public class SubsetByPyFT(ILogger? logger = null)
         return dupFonts;
     }
 
-    Dictionary<AssFontInfo, List<Rune>> GetAssFontInfoFromFiles(FileInfo[] assFiles, string optDir, out Dictionary<string, AssData> assDataWithOutputName)
+    private Dictionary<AssFontInfo, HashSet<Rune>> GetAssFontInfoFromFiles(FileInfo[] assFiles, string optDir, out Dictionary<string, AssData> assDataWithOutputName)
     {
         assDataWithOutputName = [];
-        Dictionary<AssFontInfo, List<Rune>> multiAssFonts = [];
+        Dictionary<AssFontInfo, HashSet<Rune>> multiAssFonts = [];
 
-        _logger?.ZLogInformation($"Start parse font info from ass files");
+        logger?.ZLogInformation($"Start parse font info from ass files");
         _stopwatch.Start();
 
         foreach (var assFile in assFiles)
         {
-            //_logger?.ZLogInformation($"{assFile.FullName}");
+            //logger?.ZLogInformation($"{assFile.FullName}");
             var assFileNew = Path.Combine(optDir, assFile.Name);
-            var assFonts = AssFont.GetAssFonts(assFile.FullName, out var ass, _logger);
+            var assFonts = AssFont.GetAssFonts(assFile.FullName, out var ass, logger);
             
             foreach (var kv in assFonts)
             {
-                if (multiAssFonts.Count > 0 && multiAssFonts.TryGetValue(kv.Key, out List<Rune>? value))
+                if (multiAssFonts.Count > 0 && multiAssFonts.TryGetValue(kv.Key, out var value))
                 {
-                    value.AddRange(kv.Value);
+                    value.UnionWith(kv.Value);
                 }
                 else
                 {
@@ -127,23 +126,18 @@ public class SubsetByPyFT(ILogger? logger = null)
             assDataWithOutputName.Add(assFileNew, ass);
         }
 
-        foreach (var kv in multiAssFonts)
-        {
-            multiAssFonts[kv.Key] = kv.Value.Distinct().ToList();
-        }
-
         _stopwatch.Stop();
-        _logger?.ZLogInformation($"Ass font info parsing completed, use {_stopwatch.ElapsedMilliseconds} ms");
+        logger?.ZLogInformation($"Ass font info parsing completed, use {_stopwatch.ElapsedMilliseconds} ms");
         _stopwatch.Reset();
         return multiAssFonts;
     }
 
-    Dictionary<string, List<SubsetFont>> GetSubsetFonts(IEnumerable<IGrouping<string, FontInfo>> fontInfos, Dictionary<AssFontInfo, List<Rune>> assFonts, out Dictionary<FontInfo, List<AssFontInfo>> fontMap)
+    Dictionary<string, List<SubsetFont>> GetSubsetFonts(IEnumerable<IGrouping<string, FontInfo>> fontInfos, Dictionary<AssFontInfo, HashSet<Rune>> assFonts, out Dictionary<FontInfo, List<AssFontInfo>> fontMap)
     {
-        _logger?.ZLogInformation($"Start generate subset font info");
+        logger?.ZLogInformation($"Start generate subset font info");
         _stopwatch.Start();
 
-        _logger?.ZLogDebug($"Start match font file info and ass font info");
+        logger?.ZLogDebug($"Start match font file info and ass font info");
         fontMap = [];
         List<AssFontInfo> matchedAssFontInfos = [];
 
@@ -153,7 +147,7 @@ public class SubsetByPyFT(ILogger? logger = null)
             foreach (var afi in assFonts.Keys)
             {
                 if (matchedAssFontInfos.Contains(afi)) { continue; }
-                var _fontInfo = AssFont.GetMatchedFontInfo(afi, fig, _logger);
+                var _fontInfo = AssFont.GetMatchedFontInfo(afi, fig, logger);
                 if (_fontInfo == null) { continue; }
                 var fontInfo = (FontInfo) _fontInfo;
 
@@ -164,10 +158,10 @@ public class SubsetByPyFT(ILogger? logger = null)
                 fontMap[fontInfo].Add(afi);
 
                 matchedAssFontInfos.Add(afi);
-                _logger?.ZLogDebug($"{afi.ToString()} match {fontInfo.FileName} index {fontInfo.Index}");
+                logger?.ZLogDebug($"{afi.ToString()} match {fontInfo.FileName} index {fontInfo.Index}");
             }
         }
-        _logger?.ZLogDebug($"Match completed");
+        logger?.ZLogDebug($"Match completed");
 
         if (matchedAssFontInfos.Count != assFonts.Keys.Count)
         {
@@ -175,7 +169,7 @@ public class SubsetByPyFT(ILogger? logger = null)
             throw new Exception($"Not found font file: {string.Join("、", NotFound.Select(x => x.ToString()))}");
         }
 
-        _logger?.ZLogDebug($"Start convert font file info to subset font info");
+        logger?.ZLogDebug($"Start convert font file info to subset font info");
         //List<SubsetFont> subsetFonts = [];
         Dictionary<string, List<SubsetFont>> subsetFonts = [];
         foreach (var kv in fontMap)
@@ -203,10 +197,10 @@ public class SubsetByPyFT(ILogger? logger = null)
             }
             subsetFonts[_famName].Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, horRunes, vertRunes));
         }
-        _logger?.ZLogDebug($"Convert completed");
+        logger?.ZLogDebug($"Convert completed");
 
         _stopwatch.Stop();
-        _logger?.ZLogInformation($"Generate completed, use {_stopwatch.ElapsedMilliseconds} ms");
+        logger?.ZLogInformation($"Generate completed, use {_stopwatch.ElapsedMilliseconds} ms");
         _stopwatch.Reset();
         return subsetFonts;
     }
@@ -233,51 +227,80 @@ public class SubsetByPyFT(ILogger? logger = null)
                 style.Fontname = newFn;
             }
         }
-
-        var _list = assFontNameMap.Keys.ToList();
-        _list.Sort();
-        _list.Reverse();
-        Dictionary<string, string> assFontNameMap2 = [];
-        foreach (var k in _list)
-        {
-            assFontNameMap2.Add(k, assFontNameMap[k]);
-        }
         
+        var assFontNameMapSort = assFontNameMap.OrderByDescending(d => d.Key).ToDictionary();
+
+        var sb = new StringBuilder();
         foreach (var evt in ass.Events.Collection)
         {
             if (!evt.IsDialogue) { continue; }
-            for (var i = 0; i < evt.Text.Count; i++)
+
+            if (evt.TextRanges.Length == 0)
             {
-                var span = evt.Text[i].AsSpan();
-                if (SpanReplace(ref span, assFontNameMap2))
+                evt.UpdateTextRanges();
+            }
+
+            if (evt.TextRanges.Length == 1)
+            {
+                continue;
+            }
+            
+            var text = evt.Text.AsSpan();
+            var lineChanged = false;
+            foreach (var range in evt.TextRanges)
+            {
+                var block = text[range];
+                if (AssEvent.IsOverrideBlock(block) && ReplaceFontName(block, nameMap, sb))
                 {
-                    evt.Text[i] = span.ToArray();
+                    lineChanged = true;
+                }
+                else
+                {
+                    sb.Append(block);
                 }
             }
+
+            if (lineChanged)
+            {
+                evt.Text = sb.ToString();
+            }
+
+            sb.Clear();
         }
 
         List<string> subsetList = [];
-        foreach (var kv in assFontNameMap2)
+        foreach (var kv in assFontNameMapSort)
         {
-            subsetList.Add(string.Format("Font Subset: {0} - {1}", kv.Value, kv.Key));
+            subsetList.Add($"Font Subset: {kv.Value} - {kv.Key}");
         }
         subsetList.AddRange(ass.ScriptInfo.Comment);
         ass.ScriptInfo.Comment = subsetList;
     }
 
-    private static bool SpanReplace(ref Span<char> span, Dictionary<string, string> nameMap)
+    private static bool ReplaceFontName(ReadOnlySpan<char> block, Dictionary<string, string> nameMap, StringBuilder sb)
     {
-        if (!AssTagParse.IsOverrideBlock(span)) { return false; }
-
         var changed = false;
-        foreach (var kv in nameMap)
+        foreach (var (oldValue, newValue) in nameMap)
         {
-            if (Utils.ReplaceFirst(ref span, kv.Key, kv.Value))
+            var curLoopChanged = false;
+            var start = 0;
+            var index = block.IndexOf(oldValue);
+            while (index != -1)
             {
                 changed = true;
-                break;
+                curLoopChanged = true;
+                sb.Append(block.Slice(start, index));
+                start += index + oldValue.Length;
+                sb.Append(newValue);
+                index = block[start..].IndexOf(oldValue);
+            }
+
+            if (curLoopChanged)
+            {
+                sb.Append(block[start..]);
             }
         }
+
         return changed;
     }
 }

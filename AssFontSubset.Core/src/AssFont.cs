@@ -9,52 +9,38 @@ namespace AssFontSubset.Core;
 
 public class AssFont
 {
-    public static Dictionary<AssFontInfo, List<Rune>> GetAssFonts(string file, out AssData ass, ILogger? logger = null)
+    public static Dictionary<AssFontInfo, HashSet<Rune>> GetAssFonts(string file, out AssData ass, ILogger? logger = null)
     {
         ass = new AssData(logger);
         ass.ReadAssFile(file);
 
-        var usedStyles = GetUsedStyles(ass.Events.Collection);
-        var undefinedStylesTemp = new HashSet<string>(usedStyles);
-        undefinedStylesTemp.ExceptWith(ass.Styles.Names);
-        if (undefinedStylesTemp.Count > 0)
+        var anlz = new AssAnalyze(ass, logger);
+        var undefinedStylesTemp = anlz.GetUndefinedStyles();
+        HashSet<string> undefinedStyles = [];
+        foreach (var und in undefinedStylesTemp)
         {
-            var undefinedStyles = new HashSet<string>();
-            foreach (var und in undefinedStylesTemp)
+            if (und.StartsWith('*') && ass.Styles.Names.Contains(und.TrimStart('*')))
             {
-                var usedUndStylesEvents = ass.Events.Collection.Where(e => e.Style == und && e.IsDialogue);
-                var notUsed = true;
-                foreach (var evt in usedUndStylesEvents)
-                {
-                    if (evt.Text.Count == 0) continue;
-                    foreach (var blk in evt.Text)
-                    {
-                        if (!AssTagParse.IsOverrideBlock(blk))
-                        {
-                            notUsed = false;
-                        }
-                    }
-                }
-                if (notUsed) continue;
-                
-                if (ass.Styles.Names.Contains(und.TrimStart('*')))
-                {
-                    // vsfilter ingore starting asterisk
-                    logger?.ZLogWarning($"Style '{und}' should remove the starting asterisk");
-                }
-                else
-                {
-                    undefinedStyles.Add(und);
-                }
+                // vsfilter ingore starting asterisk
+                logger?.ZLogWarning($"Style '{und}' should remove the starting asterisk");
+                continue;
             }
 
-            if (undefinedStyles.Count > 0)
+            if (ass.Events.Collection.Where(x => x.Style == und).All(x => string.IsNullOrEmpty(x.Text)))
             {
-                throw new Exception($"Undefined styles in ass Styles section: {string.Join(", ", undefinedStyles)}");
+                logger?.ZLogWarning($"Please check style '{und}', it may have been actually used but not defined");
+                continue;
             }
+
+            undefinedStyles.Add(und);
+        }
+        
+        if (undefinedStyles.Count > 0)
+        {
+            throw new Exception($"Undefined styles in ass Styles section: {string.Join(", ", undefinedStyles)}");
         }
 
-        return new AssFontParse(ass.Events.Collection, ass.Styles.Collection, logger).GetUsedFontInfos();
+        return anlz.GetUsedFontInfos();
     }
 
     public static bool IsMatch(AssFontInfo afi, FontInfo fi, bool single, int? minimalWeight = null, bool? hadItalic = null, ILogger? logger = null)
@@ -148,36 +134,5 @@ public class AssFont
             return null;
         }
     }
-
-    private static HashSet<string> GetUsedStyles(List<AssEvent> events)
-    {
-        var styles = new HashSet<string>();
-        var str = new StringBuilder();
-        foreach (var et in events)
-        {
-            if (et.IsDialogue)
-            {
-                var text = et.Text.ToArray();
-
-                styles.Add(et.Style);
-
-                char[] block = [];
-                for (var i = 0; i < text.Length; i++)
-                {
-                    block = text[i];
-                    if (block[0] == '{' && block[^1] == '}' && block.Length > 2 && i != text.Length - 1)
-                    {
-                        foreach (var ca in AssTagParse.GetTagsFromOvrBlock(block))
-                        {
-                            if (ca[0] == 'r' && ca.Length > 1 && ca.Length >= 3 && !ca.AsSpan()[..3].SequenceEqual("rnd".AsSpan()))
-                            {
-                                styles.Add(new string(ca[1..]));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return styles;
-    }
+    
 }
