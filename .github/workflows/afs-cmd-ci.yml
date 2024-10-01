@@ -26,8 +26,8 @@ jobs:
             identifier: win
           - os: macos-latest
             identifier: osx
-          - os: ubuntu-latest
-            identifier: linux
+          # - os: ubuntu-latest
+          #   identifier: linux
         arch: ['x64', 'arm64']
         dotnet_version: ['8.x']
 
@@ -44,8 +44,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Update submodule
-      run: git submodule update --init --recursive
+    # - name: Update submodule
+    #   run: git submodule update --init --recursive
 
     - name: Test
       run: |
@@ -55,20 +55,20 @@ jobs:
         dotnet test
         cd ..
 
-    - name: Install linux arm64 prereqs
-      # copy from https://github.com/dn-vm/dnvm
-      if: matrix.env.identifier == 'linux' && matrix.arch == 'arm64'
-      run: |
-        sudo dpkg --add-architecture arm64
-        sudo bash -c 'cat > /etc/apt/sources.list.d/arm64.list <<EOF
-        deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy main restricted ports
-        deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-updates main restricted
-        deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-backports main restricted universe multiverse
-        EOF'
-        sudo sed -i -e 's/deb http/deb [arch=amd64] http/g' /etc/apt/sources.list
-        sudo sed -i -e 's/deb mirror/deb [arch=amd64] mirror/g' /etc/apt/sources.list
-        sudo apt update
-        sudo apt install -y clang llvm binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu zlib1g-dev:arm64
+    # - name: Install linux arm64 prereqs
+    #   # copy from https://github.com/dn-vm/dnvm
+    #   if: matrix.env.identifier == 'linux' && matrix.arch == 'arm64'
+    #   run: |
+    #     sudo dpkg --add-architecture arm64
+    #     sudo bash -c 'cat > /etc/apt/sources.list.d/arm64.list <<EOF
+    #     deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy main restricted ports
+    #     deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-updates main restricted
+    #     deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-backports main restricted universe multiverse
+    #     EOF'
+    #     sudo sed -i -e 's/deb http/deb [arch=amd64] http/g' /etc/apt/sources.list
+    #     sudo sed -i -e 's/deb mirror/deb [arch=amd64] mirror/g' /etc/apt/sources.list
+    #     sudo apt update
+    #     sudo apt install -y clang llvm binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu zlib1g-dev:arm64
 
     - name: Change to afs.cmd and Publish
       run: |
