@@ -234,7 +234,9 @@ public class SubsetByPyFT(ILogger? logger = null)
         foreach (var evt in ass.Events.Collection)
         {
             if (!evt.IsDialogue) { continue; }
-
+            var text = evt.Text.AsSpan();
+            if (text.IsEmpty) { continue; }
+            
             if (evt.TextRanges.Length == 0)
             {
                 evt.UpdateTextRanges();
@@ -245,7 +247,6 @@ public class SubsetByPyFT(ILogger? logger = null)
                 continue;
             }
             
-            var text = evt.Text.AsSpan();
             var lineChanged = false;
             foreach (var range in evt.TextRanges)
             {
