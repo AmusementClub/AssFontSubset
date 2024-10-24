@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="Mobsub.Helper" Version="0.0.1" />
-    <PackageReference Include="Mobsub.SubtitleParse" Version="0.4.3" />
+    <PackageReference Include="Mobsub.SubtitleParse" Version="0.4.4-beta1" />
   </ItemGroup>
 
   <Import Project="..\build\global.props" />
