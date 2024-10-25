@@ -251,7 +251,7 @@ public class SubsetByPyFT(ILogger? logger = null)
             foreach (var range in evt.TextRanges)
             {
                 var block = text[range];
-                if (AssEvent.IsOverrideBlock(block) && ReplaceFontName(block, nameMap, sb))
+                if (AssEvent.IsOverrideBlock(block) && ReplaceFontName(block, assFontNameMapSort, sb))
                 {
                     lineChanged = true;
                 }
