@@ -1,4 +1,5 @@
-﻿using Mobsub.SubtitleParse.AssTypes;
+﻿using System.Buffers;
+using Mobsub.SubtitleParse.AssTypes;
 using Mobsub.SubtitleParse;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -281,26 +282,46 @@ public class SubsetByPyFT(ILogger? logger = null)
     private static bool ReplaceFontName(ReadOnlySpan<char> block, Dictionary<string, string> nameMap, StringBuilder sb)
     {
         var changed = false;
-        foreach (var (oldValue, newValue) in nameMap)
+        var start = 0;
+        var tagIndex = block.IndexOf($@"{AssConstants.BackSlash}{AssConstants.OverrideTags.FontName}");
+        while (tagIndex != -1)
         {
-            var curLoopChanged = false;
-            var start = 0;
-            var index = block.IndexOf(oldValue);
-            while (index != -1)
+            tagIndex += 3;
+            sb.Append(block.Slice(start, tagIndex));
+            start += tagIndex;
+            
+            var sepValues = SearchValues.Create($"{AssConstants.BackSlash}{AssConstants.EndOvrBlock}");
+            var nextTag = block[start..].IndexOfAny(sepValues);
+
+            var tagValue = nextTag == -1 ? block[start..] : block.Slice(start, nextTag);
+
+            var matched = false;
+            foreach (var (oldValue, newValue) in nameMap)
             {
-                changed = true;
-                curLoopChanged = true;
-                sb.Append(block.Slice(start, index));
-                start += index + oldValue.Length;
-                sb.Append(newValue);
-                index = block[start..].IndexOf(oldValue);
+                if (tagValue.SequenceEqual(oldValue))
+                {
+                    sb.Append(newValue);
+                    changed = true;
+                    matched = true;
+                    break;
+                }
             }
 
-            if (curLoopChanged)
+            if (!matched)
             {
-                sb.Append(block[start..]);
+                sb.Append(tagValue);
             }
+            
+            start += tagValue.Length;   
+            if (nextTag == -1)
+            {
+                break;
+            }
+            
+            tagIndex = block[start..].IndexOf($@"{AssConstants.BackSlash}{AssConstants.OverrideTags.FontName}");
         }
+
+        sb.Append(block[start..]);
 
         return changed;
     }
