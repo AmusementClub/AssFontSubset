@@ -1,0 +1,6 @@
+﻿<Solution>
+  <Project Path="AssFontSubset.Avalonia\AssFontSubset.Avalonia.csproj" />
+  <Project Path="AssFontSubset.Console\AssFontSubset.Console.csproj" />
+  <Project Path="AssFontSubset.CoreTests\AssFontSubset.Core.Tests.csproj" />
+  <Project Path="AssFontSubset.Core\AssFontSubset.Core.csproj" />
+</Solution>
