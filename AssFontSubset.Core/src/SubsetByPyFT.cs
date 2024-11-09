@@ -298,8 +298,13 @@ public class SubsetByPyFT(ILogger? logger = null)
             var matched = false;
             foreach (var (oldValue, newValue) in nameMap)
             {
-                if (tagValue.SequenceEqual(oldValue))
+                var vertical = tagValue.Length > 1 && tagValue[0] == '@';
+                if (tagValue[(vertical ? 1 : 0)..].SequenceEqual(oldValue))
                 {
+                    if (vertical)
+                    {
+                        sb.Append('@');
+                    }
                     sb.Append(newValue);
                     changed = true;
                     matched = true;
