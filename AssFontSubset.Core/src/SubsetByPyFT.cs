@@ -17,8 +17,6 @@ public class SubsetByPyFT(ILogger? logger = null)
         var baseDir = path[0].Directory!.FullName;
         fontPath ??= new DirectoryInfo(Path.Combine(baseDir, "fonts"));
         outputPath ??= new DirectoryInfo(Path.Combine(baseDir, "output"));
-        var pyftsubset = binPath is null ? "pyftsubset" : Path.Combine(binPath.FullName, "pyftsubset");
-        var ttx = binPath is null ? "ttx" : Path.Combine(binPath.FullName, "ttx");
 
         foreach (var file in path)
         {
@@ -35,10 +33,25 @@ public class SubsetByPyFT(ILogger? logger = null)
         await Task.Run(() =>
         {
             var fontInfos = GetFontInfoFromFiles(fontDir);
-            var pyFT = new PyFontTools(pyftsubset, ttx, logger) { Config = subsetConfig, sw = _stopwatch };
             var assFonts = GetAssFontInfoFromFiles(path, optDir, out var assMulti);
             var subsetFonts = GetSubsetFonts(fontInfos, assFonts, out var fontMap);
-            pyFT.SubsetFonts(subsetFonts, optDir, out var nameMap);
+            Dictionary<string, string> nameMap = [];
+
+            switch (subsetConfig.Backend)
+            {
+                case SubsetBackend.PyFontTools:
+                    var pyftsubset = binPath is null ? "pyftsubset" : Path.Combine(binPath.FullName, "pyftsubset");
+                    var ttx = binPath is null ? "ttx" : Path.Combine(binPath.FullName, "ttx");
+                    var pyFT = new PyFontTools(pyftsubset, ttx, logger) { Config = subsetConfig, sw = _stopwatch };
+                    pyFT.SubsetFonts(subsetFonts, optDir, out nameMap);
+                    break;
+                case SubsetBackend.HarfBuzzSubset:
+                    var hbss = new HarfBuzzSubset(logger) { Config = subsetConfig, sw = _stopwatch };
+                    hbss.SubsetFonts(subsetFonts, optDir, out nameMap);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
 
             foreach (var kv in assMulti)
             {

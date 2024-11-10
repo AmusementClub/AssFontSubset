@@ -2,12 +2,17 @@
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow> -->
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Mobsub.Helper" Version="0.0.1" />
     <PackageReference Include="Mobsub.SubtitleParse" Version="0.4.4-beta3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HarfBuzzBinding\HarfBuzzBinding.csproj" />
   </ItemGroup>
 
   <Import Project="..\build\global.props" />
