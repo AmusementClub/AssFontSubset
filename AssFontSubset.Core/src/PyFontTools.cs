@@ -6,13 +6,7 @@ using ZLogger;
 
 namespace AssFontSubset.Core;
 
-public struct SubsetConfig
-{
-    public bool SourceHanEllipsis;
-    public bool DebugMode;
-}
-
-public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
+public class PyFontTools(string pyftsubset, string ttx, ILogger? logger) : SubsetToolBase
 {
     private Version pyFtVersion = GetFontToolsVersion(ttx);
 
@@ -42,7 +36,7 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
         }
     }
 
-    public void SubsetFonts(Dictionary<string, List<SubsetFont>> subsetFonts, string outputFolder, out Dictionary<string, string> nameMap)
+    public override void SubsetFonts(Dictionary<string, List<SubsetFont>> subsetFonts, string outputFolder, out Dictionary<string, string> nameMap)
     {
         logger?.ZLogInformation($"Start subset font");
         logger?.ZLogInformation($"Font subset use pyFontTools {pyFtVersion}");
@@ -74,7 +68,7 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger)
         }
     }
 
-    public void CreateFontSubset(SubsetFont ssf, string outputFolder)
+    public override void CreateFontSubset(SubsetFont ssf, string outputFolder)
     {
         if (!Path.Exists(outputFolder))
         {
