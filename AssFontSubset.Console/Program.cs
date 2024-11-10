@@ -43,7 +43,7 @@ internal static class Program
 
         var rootCommand = new CliRootCommand("使用 fonttools 或 harfbuzz-subset 生成 ASS 字幕文件的字体子集，并自动修改字体名称及 ASS 文件中对应的字体名称")
         {
-            path, fontPath, outputPath, binPath, sourceHanEllipsis, debug
+            path, fontPath, outputPath, subsetBackend, binPath, sourceHanEllipsis, debug
         };
 
         rootCommand.SetAction(async (result, _) =>
