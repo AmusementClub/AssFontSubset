@@ -44,4 +44,21 @@ public static class FontConstant
     };
 
     public const int LanguageIdEnUs = 1033;
+    
+    
+    // GDI doesn’t seem to use any features (may use vert?), and it has its own logic for handling vertical layout.
+    // https://learn.microsoft.com/en-us/typography/opentype/spec/features_uz#tag-vrt2
+    // GDI may according it:
+    // OpenType font with CFF outlines to be used for vertical writing must have vrt2, otherwise fallback
+    // OpenType font without CFF outlines use vert map default glyphs to vertical writing glyphs
+        
+    // https://github.com/libass/libass/pull/702
+    // libass seems to be trying to use features like vert to solve this problem.
+    // These are features related to vertical layout but are not enabled: "vchw", "vhal", "vkrn", "vpal", "vrtr".
+    // https://github.com/libass/libass/blob/6e83137cdbaf4006439d526fef902e123129707b/libass/ass_shaper.c#L147
+    public static readonly string[] SubsetKeepFeatures = [
+        "vert", "vrtr",
+        "vrt2",
+        "vkna",
+    ];
 }
