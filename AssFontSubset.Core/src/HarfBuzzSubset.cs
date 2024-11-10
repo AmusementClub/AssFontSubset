@@ -50,12 +50,6 @@ public unsafe class HarfBuzzSubset(ILogger? logger) : SubsetToolBase
         var outputFileWithoutSuffix = Path.GetFileNameWithoutExtension(ssf.OriginalFontFile.Name);
         var outputFile = new StringBuilder($"{outputFileWithoutSuffix}.{ssf.TrackIndex}.{ssf.RandomNewName}");
         
-        if (Config.DebugMode)
-        {
-            ssf.CharactersFile = Path.Combine(outputFolder, $"{outputFile}.txt");
-            ssf.WriteRunesToUtf8File();
-        }
-        
         var originalFontFileSuffix = Path.GetExtension(ssf.OriginalFontFile.Name).AsSpan();
         outputFile.Append(originalFontFileSuffix[..3]);
         switch (originalFontFileSuffix[^1])
@@ -75,6 +69,11 @@ public unsafe class HarfBuzzSubset(ILogger? logger) : SubsetToolBase
 
         ssf.Preprocessing();
         var modifyIds = GetModifyNameIds(ssf.OriginalFontFile.FullName, ssf.TrackIndex);
+        if (Config.DebugMode)
+        {
+            ssf.CharactersFile = Path.Combine(outputFolder, $"{outputFile}.txt");
+            ssf.WriteRunesToUtf8File();
+        }
 
         sw ??= new Stopwatch();
         sw.Start();
