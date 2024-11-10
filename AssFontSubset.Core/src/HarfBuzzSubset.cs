@@ -56,7 +56,7 @@ public unsafe class HarfBuzzSubset(ILogger? logger) : SubsetToolBase
         }
         
         var originalFontFileSuffix = Path.GetExtension(ssf.OriginalFontFile.Name).AsSpan();
-        outputFile.Append(originalFontFileSuffix[..2]);
+        outputFile.Append(originalFontFileSuffix[..3]);
         switch (originalFontFileSuffix[^1])
         {
             case 'c':
@@ -64,6 +64,9 @@ public unsafe class HarfBuzzSubset(ILogger? logger) : SubsetToolBase
                 break;
             case 'C':
                 outputFile.Append('F');
+                break;
+            default:
+                outputFile.Append(originalFontFileSuffix[^1]);
                 break;
         }
 
@@ -108,8 +111,6 @@ public unsafe class HarfBuzzSubset(ILogger? logger) : SubsetToolBase
         sw.Reset();
 
         SubsetApis.hb_subset_input_destroy(input);
-        HBApis.hb_set_destroy(unicodes);
-        
         HBApis.hb_face_destroy(faceNewPtr);
         HBApis.hb_face_destroy(facePtr);
     }
