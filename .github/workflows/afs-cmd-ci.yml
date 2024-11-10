@@ -17,6 +17,9 @@ on:
     - 'AssFontSubset.Console/**.csproj'
   workflow_dispatch:
 
+env:
+  hb_ver: 10.1.0
+
 jobs:
   build:
     strategy:
@@ -24,11 +27,11 @@ jobs:
         env:
           - os: windows-latest
             identifier: win
-          - os: macos-latest
-            identifier: osx
+          # - os: macos-latest
+          #   identifier: osx
           # - os: ubuntu-latest
           #   identifier: linux
-        arch: ['x64', 'arm64']
+        arch: ['x64'] # 'arm64'
         dotnet_version: ['8.x']
 
     name: build-${{ matrix.env.os }}-${{ matrix.arch }}
@@ -69,6 +72,15 @@ jobs:
     #     sudo sed -i -e 's/deb mirror/deb [arch=amd64] mirror/g' /etc/apt/sources.list
     #     sudo apt update
     #     sudo apt install -y clang llvm binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu zlib1g-dev:arm64
+
+    - name: Download prebuilt harfbuzz libs
+      if: matrix.env.identifier == 'win' && matrix.arch == 'x64'
+      run: |
+        mkdir native
+        Invoke-WebRequest -Uri https://github.com/MIRIMIRIM/FontFlat/releases/download/harfbuzz-libs/harfbuzz_win-x64_${{ env.hb_ver }}.7z -OutFile ./native/harfbuzz_win-x64.7z
+        cd ./native
+        7z x harfbuzz_win-x64.7z
+        cd ..
 
     - name: Change to afs.cmd and Publish
       run: |
