@@ -3,4 +3,5 @@
   <Project Path="AssFontSubset.Console\AssFontSubset.Console.csproj" />
   <Project Path="AssFontSubset.CoreTests\AssFontSubset.Core.Tests.csproj" />
   <Project Path="AssFontSubset.Core\AssFontSubset.Core.csproj" />
+  <Project Path="HarfBuzzBinding\HarfBuzzBinding.csproj" Type="Classic C#" />
 </Solution>
