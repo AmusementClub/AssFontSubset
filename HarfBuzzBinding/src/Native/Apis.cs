@@ -34,5 +34,12 @@ public static unsafe partial class Apis
     public static extern void hb_set_add(hb_set_t* set, [NativeTypeName("hb_codepoint_t")] uint codepoint);
     
     [DllImport(HarfBuzzDll, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    public static extern void hb_set_clear(hb_set_t* set);
+    
+    [DllImport(HarfBuzzDll, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
     public static extern void hb_set_destroy(hb_set_t* set);
+    
+    [DllImport(HarfBuzzDll, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+    [return: NativeTypeName("hb_tag_t")]
+    public static extern uint hb_tag_from_string(sbyte* str, int len);
 }

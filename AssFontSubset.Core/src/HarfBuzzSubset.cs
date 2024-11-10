@@ -6,6 +6,7 @@ using ZLogger;
 using SubsetApis = HarfBuzzBinding.Native.Subset.Apis;
 using HBApis = HarfBuzzBinding.Native.Apis;
 using System.Diagnostics;
+using HarfBuzzBinding.Native.Subset;
 using OTFontFile;
 
 namespace AssFontSubset.Core;
@@ -82,10 +83,18 @@ public unsafe class HarfBuzzSubset(ILogger? logger) : SubsetToolBase
         facePtr = SubsetApis.hb_subset_preprocess(facePtr);
         
         var input = SubsetApis.hb_subset_input_create_or_fail();
+        
         var unicodes = SubsetApis.hb_subset_input_unicode_set(input);
         foreach (var rune in ssf.Runes)
         {
             HBApis.hb_set_add(unicodes, (uint)rune.Value);
+        }
+        
+        var features = SubsetApis.hb_subset_input_set(input, hb_subset_sets_t.HB_SUBSET_SETS_LAYOUT_FEATURE_TAG);
+        HBApis.hb_set_clear(features);
+        foreach (var feature in FontConstant.SubsetKeepFeatures)
+        {
+            HBApis.hb_set_add(features, HBApis.hb_tag_from_string((sbyte*)Marshal.StringToHGlobalAnsi(feature), -1));
         }
 
         Methods.RenameFontname(input,
