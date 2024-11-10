@@ -6,6 +6,7 @@ using ZLogger;
 using SubsetApis = HarfBuzzBinding.Native.Subset.Apis;
 using HBApis = HarfBuzzBinding.Native.Apis;
 using System.Diagnostics;
+using OTFontFile;
 
 namespace AssFontSubset.Core;
 
@@ -73,6 +74,7 @@ public unsafe class HarfBuzzSubset(ILogger? logger) : SubsetToolBase
         var outputFileName = Path.Combine(outputFolder, outputFile.ToString());
 
         ssf.Preprocessing();
+        var modifyIds = GetModifyNameIds(ssf.OriginalFontFile.FullName, ssf.TrackIndex);
 
         sw ??= new Stopwatch();
         sw.Start();
@@ -90,16 +92,7 @@ public unsafe class HarfBuzzSubset(ILogger? logger) : SubsetToolBase
         Methods.RenameFontname(input,
             (sbyte*)Marshal.StringToHGlobalAnsi($"Processed by AssFontSubset v{System.Reflection.Assembly.GetEntryAssembly()!.GetName().Version}; harfbuzz-subset {hbssVersion}"),
             (sbyte*)Marshal.StringToHGlobalAnsi(ssf.RandomNewName),
-            new OpenTypeNameId[]
-            {
-                new OpenTypeNameId
-                {
-                    NameId = 1,
-                    PlatformId = 3,
-                    LanguageId = 1,
-                    EncodingId = 0x0409
-                }
-            });
+            modifyIds);
         
         var faceNewPtr = SubsetApis.hb_subset_or_fail(facePtr, input);
 
@@ -113,5 +106,30 @@ public unsafe class HarfBuzzSubset(ILogger? logger) : SubsetToolBase
         SubsetApis.hb_subset_input_destroy(input);
         HBApis.hb_face_destroy(faceNewPtr);
         HBApis.hb_face_destroy(facePtr);
+    }
+
+    private static OpenTypeNameId[] GetModifyNameIds(string fontFileName, uint index)
+    {
+        List<OpenTypeNameId> ids = [];
+        var otf = new OTFile();
+        otf.open(fontFileName);
+        var font = otf.GetFont(index);
+        var nameTable = (Table_name)font!.GetTable("name")!;
+        for (uint i = 0; i < nameTable.NumberNameRecords; i++)
+        {
+            var nameRecord = nameTable.GetNameRecord(i);
+            if (nameRecord!.NameID is 0 or 1 or 3 or 4 or 6)
+            {
+                ids.Add(new OpenTypeNameId
+                {
+                    NameId = nameRecord.NameID,
+                    PlatformId = nameRecord.PlatformID,
+                    LanguageId = nameRecord.LanguageID,
+                    EncodingId = nameRecord.EncodingID,
+                });
+            }
+        }
+
+        return ids.ToArray();
     }
 }

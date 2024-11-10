@@ -49,7 +49,7 @@ public unsafe class Methods
     {
         foreach (var id in ids)
         {
-            _ = SubsetApis.hb_subset_input_override_name_table(input, id.NameId, id.PlatformId, id.LanguageId, id.EncodingId, id.NameId == 0 ? versionString : nameString, -1);
+            _ = SubsetApis.hb_subset_input_override_name_table(input, id.NameId, id.PlatformId, id.EncodingId, id.LanguageId, id.NameId == 0 ? versionString : nameString, -1);
         }
     }
 }
