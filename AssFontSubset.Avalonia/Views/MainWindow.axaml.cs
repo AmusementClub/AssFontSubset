@@ -64,7 +64,7 @@ namespace AssFontSubset.Avalonia.Views
                     DebugMode = debug,
                 };
                 Progressing.IsIndeterminate = true;
-                var ssFt = new SubsetByPyFT();
+                var ssFt = new SubsetCore();
                 await ssFt.SubsetAsync(path, fontPath, outputPath, binPath, subsetConfig);
                 Progressing.IsIndeterminate = false;
                 await ShowMessageBox("Sucess", "子集化完成，请检查 output 文件夹");

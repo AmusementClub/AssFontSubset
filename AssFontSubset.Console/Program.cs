@@ -115,7 +115,7 @@ internal static class Program
             throw new ArgumentException();
         }
 
-        var ssFt = new SubsetByPyFT(logger);
+        var ssFt = new SubsetCore(logger);
         try
         {
             await ssFt.SubsetAsync(path, fontPath, outputPath, binPath, subsetConfig);

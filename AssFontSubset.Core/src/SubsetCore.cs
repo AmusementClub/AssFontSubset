@@ -8,7 +8,7 @@ using System.Diagnostics;
 
 namespace AssFontSubset.Core;
 
-public class SubsetByPyFT(ILogger? logger = null)
+public class SubsetCore(ILogger? logger = null)
 {
     private static readonly Stopwatch _stopwatch = new();
 
