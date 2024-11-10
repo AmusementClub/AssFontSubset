@@ -6,7 +6,7 @@
     <PublishAot>True</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
-
+  
   <ItemGroup>
     <PackageReference Include="PublishAotCross" Version="1.0.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.24324.3" />
@@ -18,4 +18,17 @@
 
   <Import Project="..\build\global.props" />
 
+  <Target Name="CopyNativeFiles" AfterTargets="Build"
+          Condition=" '$(Configuration)' == 'Debug' and $([MSBuild]::IsOSPlatform('Windows')) ">
+    <Copy SourceFiles="..\native\harfbuzz.dll" DestinationFolder="$(OutputPath)" />
+    <Copy SourceFiles="..\native\harfbuzz-subset.dll" DestinationFolder="$(OutputPath)" />
+  </Target>
+
+  <ItemGroup>
+    <DirectPInvoke Include="harfbuzz" />
+    <NativeLibrary Include="../native/libharfbuzz.a" Condition="$(RuntimeIdentifier.StartsWith('win-x64'))" />
+    <DirectPInvoke Include="harfbuzz-subset" />
+    <NativeLibrary Include="../native/libharfbuzz-subset.a" Condition="$(RuntimeIdentifier.StartsWith('win-x64'))" />
+  </ItemGroup>
+  
 </Project>
