@@ -21,6 +21,11 @@ internal static class Program
         {
             Description = "子集化后成品所在目录，默认为 ASS 同目录的 output 文件夹"
         };
+        var subsetBackend = new CliOption<SubsetBackend>("--subset-backend")
+        {
+            Description = "子集化使用的后端",
+            DefaultValueFactory = _ => SubsetBackend.PyFontTools,
+        };
         var binPath = new CliOption<DirectoryInfo>("--bin-path")
         {
             Description = "指定 pyftsubset 和 ttx 所在目录。若未指定，会使用环境变量中的"
@@ -36,7 +41,7 @@ internal static class Program
             DefaultValueFactory = _ => false,
         };
 
-        var rootCommand = new CliRootCommand("使用 fonttools 生成 ASS 字幕文件的字体子集，并自动修改字体名称及 ASS 文件中对应的字体名称")
+        var rootCommand = new CliRootCommand("使用 fonttools 或 harfbuzz-subset 生成 ASS 字幕文件的字体子集，并自动修改字体名称及 ASS 文件中对应的字体名称")
         {
             path, fontPath, outputPath, binPath, sourceHanEllipsis, debug
         };
@@ -47,6 +52,7 @@ internal static class Program
                 result.GetValue(path)!,
                 result.GetValue(fontPath),
                 result.GetValue(outputPath),
+                result.GetValue(subsetBackend),
                 result.GetValue(binPath),
                 result.GetValue(sourceHanEllipsis),
                 result.GetValue(debug)
@@ -74,12 +80,13 @@ internal static class Program
         return exitCode;
     }
 
-    static async Task Subset(FileInfo[] path, DirectoryInfo? fontPath, DirectoryInfo? outputPath, DirectoryInfo? binPath, bool sourceHanEllipsis, bool debug)
+    static async Task Subset(FileInfo[] path, DirectoryInfo? fontPath, DirectoryInfo? outputPath, SubsetBackend subsetBackend, DirectoryInfo? binPath, bool sourceHanEllipsis, bool debug)
     {
         var subsetConfig = new SubsetConfig
         {
             SourceHanEllipsis = sourceHanEllipsis,
             DebugMode = debug,
+            Backend = subsetBackend,
         };
         var logLevel = debug ? LogLevel.Debug : LogLevel.Information;
 
