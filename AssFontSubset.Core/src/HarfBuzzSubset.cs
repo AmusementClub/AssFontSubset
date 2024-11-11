@@ -38,6 +38,8 @@ public unsafe class HarfBuzzSubset(ILogger? logger) : SubsetToolBase
                 CreateFontSubset(subsetFont, outputFolder);
                 logger?.ZLogInformation($"Subset font completed, use {timer} ms");
             }
+
+            i++;
         }
     }
     
