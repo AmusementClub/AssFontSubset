@@ -16,15 +16,15 @@ jobs:
     strategy:
       matrix:
         harfbuzz_ver: ['10.1.0']
-        target: [win, macos, linux-musl]
+        target: [win, linux-musl] # macos
         arch: [x64, arm64]
         include:
           - os: windows-latest
             target: win
           - os: windows-latest
             target: linux-musl
-          - os: macos-latest
-            target: macos
+          # - os: macos-latest
+          #   target: macos
         dotnet_version: ['8.x']
 
     steps:
