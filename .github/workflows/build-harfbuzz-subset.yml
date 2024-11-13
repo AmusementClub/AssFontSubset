@@ -26,7 +26,7 @@ jobs:
     strategy:
       matrix:
         harfbuzz_ver: ['10.1.0']
-        target: [win, macos, linux-musl]
+        target: [win, osx, linux-musl]
         arch: [x64, arm64]
         include:
           - os: windows-latest
@@ -34,7 +34,7 @@ jobs:
           - os: windows-latest
             target: linux-musl
           - os: macos-latest
-            target: macos
+            target: osx
 
     steps:
     - name: Set up cache
@@ -91,14 +91,14 @@ jobs:
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
         meson --native-file ../scripts/zig.ini --cross-file ../scripts/zig.ini --cross-file ../scripts/project.ini --cross-file ../scripts/${{ env.identifier }}.ini -Ddefault_library=static build/${{ env.identifier }}-static
 
-    - name: Configure (macos-arm64)
-      if: matrix.target == 'macos' && matrix.arch == 'arm64' && steps.cache.outputs.cache-hit != 'true'
+    - name: Configure (osx-arm64)
+      if: matrix.target == 'osx' && matrix.arch == 'arm64' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
         meson --native-file ../scripts/project.ini -Ddefault_library=static build/${{ env.identifier }}-static
     
-    - name: Configure (macos-x64)
-      if: matrix.target == 'macos' && matrix.arch == 'x64' && steps.cache.outputs.cache-hit != 'true'
+    - name: Configure (osx-x64)
+      if: matrix.target == 'osx' && matrix.arch == 'x64' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
         meson --cross-file ../scripts/project.ini --cross-file ../scripts/${{ env.identifier }}.ini -Ddefault_library=static build/${{ env.identifier }}-static
