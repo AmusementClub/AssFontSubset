@@ -21,6 +21,8 @@ jobs:
   build:
     name: build-${{ matrix.target }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
+    env:
+      identifier: ${{ matrix.target }}-${{ matrix.arch }}
     strategy:
       matrix:
         harfbuzz_ver: ['10.1.0']
@@ -40,9 +42,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ./HarfBuzzBinding/target
-        key: hb-subset-${{ matrix.harfbuzz_ver }}-static-${{ matrix.target }}-${{ matrix.arch }}-${{ github.sha }}
+        key: hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static-${{ github.sha }}
         restore-keys: |
-          hb-subset-${{ matrix.harfbuzz_ver }}-static-${{ matrix.target }}-${{ matrix.arch }}-
+          hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static-
 
     - name: Check out code
       if: steps.cache.outputs.cache-hit != 'true'
@@ -75,42 +77,42 @@ jobs:
       if: matrix.target == 'win' && matrix.arch == 'x64' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
-        meson --native-file ../scripts/project.ini -Ddefault_library=static -Db_vscrt=static_from_buildtype build/${{ matrix.target }}-${{ matrix.arch }}-static
+        meson --native-file ../scripts/project.ini -Ddefault_library=static -Db_vscrt=static_from_buildtype build/${{ env.identifier }}-static
 
     - name: Configure (windows-arm64)
       if: matrix.target == 'win' && matrix.arch == 'arm64' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
-        meson --cross-file ../scripts/project.ini --cross-file ../scripts/${{ matrix.target }}-${{ matrix.arch }}.ini -Ddefault_library=static -Db_vscrt=static_from_buildtype build/${{ matrix.target }}-${{ matrix.arch }}-static
+        meson --cross-file ../scripts/project.ini --cross-file ../scripts/${{ env.identifier }}.ini -Ddefault_library=static -Db_vscrt=static_from_buildtype build/${{ env.identifier }}-static
 
     - name: Configure (linux-musl)
       if: matrix.target == 'linux-musl' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
-        meson --native-file ../scripts/zig.ini --cross-file ../scripts/zig.ini --cross-file ../scripts/project.ini --cross-file ../scripts/${{ matrix.target }}-${{ matrix.arch }}.ini -Ddefault_library=static build/${{ matrix.target }}-${{ matrix.arch }}-static
+        meson --native-file ../scripts/zig.ini --cross-file ../scripts/zig.ini --cross-file ../scripts/project.ini --cross-file ../scripts/${{ env.identifier }}.ini -Ddefault_library=static build/${{ env.identifier }}-static
 
     - name: Configure (macos-arm64)
       if: matrix.target == 'macos' && matrix.arch == 'arm64' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
-        meson --native-file ../scripts/project.ini -Ddefault_library=static build/${{ matrix.target }}-${{ matrix.arch }}-static
+        meson --native-file ../scripts/project.ini -Ddefault_library=static build/${{ env.identifier }}-static
     
     - name: Configure (macos-x64)
       if: matrix.target == 'macos' && matrix.arch == 'x64' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
-        meson --cross-file ../scripts/project.ini --cross-file ../scripts/${{ matrix.target }}-${{ matrix.arch }}.ini -Ddefault_library=static build/${{ matrix.target }}-${{ matrix.arch }}-static
+        meson --cross-file ../scripts/project.ini --cross-file ../scripts/${{ env.identifier }}.ini -Ddefault_library=static build/${{ env.identifier }}-static
     
     - name: Build
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
-        meson compile -C build/${{ matrix.target }}-${{ matrix.arch }}-static
+        meson compile -C build/${{ env.identifier }}-static
         mkdir ../target
-        cp build/${{ matrix.target }}-${{ matrix.arch }}-static/src/*.a ../target/
+        cp build/${{ env.identifier }}-static/src/*.a ../target/
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: hb-subset-${{ matrix.harfbuzz_ver }}-static-${{ matrix.target }}
+        name: hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static
         path: ./HarfBuzzBinding/target
