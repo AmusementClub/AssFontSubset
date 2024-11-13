@@ -56,11 +56,11 @@ jobs:
         git clone --recurse-submodules https://github.com/harfbuzz/harfbuzz.git -b ${{ matrix.harfbuzz_ver }} --depth=1 harfbuzz-${{ matrix.harfbuzz_ver }}
 
     - name: Setup msbuild (target windows x64)
-      if: matrix.target == 'windows' && matrix.arch == 'x64' && steps.cache.outputs.cache-hit != 'true'
+      if: matrix.target == 'win' && matrix.arch == 'x64' && steps.cache.outputs.cache-hit != 'true'
       uses: ilammy/msvc-dev-cmd@v1
 
     - name: Setup msbuild (target windows arm64)
-      if: matrix.target == 'windows' && matrix.arch == 'arm64' && steps.cache.outputs.cache-hit != 'true'
+      if: matrix.target == 'win' && matrix.arch == 'arm64' && steps.cache.outputs.cache-hit != 'true'
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: amd64_arm64
@@ -71,31 +71,31 @@ jobs:
       with:
         version: "master"
 
-    - name: Build (windows-x64)
-      if: matrix.target == 'windows' && matrix.arch == 'x64' && steps.cache.outputs.cache-hit != 'true'
+    - name: Configure (windows-x64)
+      if: matrix.target == 'win' && matrix.arch == 'x64' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
         meson --native-file ../scripts/project.ini -Ddefault_library=static -Db_vscrt=static_from_buildtype build/${{ matrix.target }}-${{ matrix.arch }}-static
 
-    - name: Build (windows-arm64)
-      if: matrix.target == 'windows' && matrix.arch == 'arm64' && steps.cache.outputs.cache-hit != 'true'
+    - name: Configure (windows-arm64)
+      if: matrix.target == 'win' && matrix.arch == 'arm64' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
         meson --cross-file ../scripts/project.ini --cross-file ../scripts/${{ matrix.target }}-${{ matrix.arch }}.ini -Ddefault_library=static -Db_vscrt=static_from_buildtype build/${{ matrix.target }}-${{ matrix.arch }}-static
 
-    - name: Build (linux-musl)
+    - name: Configure (linux-musl)
       if: matrix.target == 'linux-musl' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
         meson --native-file ../scripts/zig.ini --cross-file ../scripts/zig.ini --cross-file ../scripts/project.ini --cross-file ../scripts/${{ matrix.target }}-${{ matrix.arch }}.ini -Ddefault_library=static build/${{ matrix.target }}-${{ matrix.arch }}-static
 
-    - name: Build (macos-arm64)
+    - name: Configure (macos-arm64)
       if: matrix.target == 'macos' && matrix.arch == 'arm64' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
         meson --native-file ../scripts/project.ini -Ddefault_library=static build/${{ matrix.target }}-${{ matrix.arch }}-static
     
-    - name: Build (macos-x64)
+    - name: Configure (macos-x64)
       if: matrix.target == 'macos' && matrix.arch == 'x64' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
