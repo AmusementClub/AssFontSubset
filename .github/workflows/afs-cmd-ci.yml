@@ -64,9 +64,9 @@ jobs:
       uses: actions/cache/restore@v4
       with:
         path: ./HarfBuzzBinding/target
-        key: hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static-${{ github.sha }}
-        restore-keys: |
-          hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static-
+        key: hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static
+        # restore-keys: |
+        #   hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static-
 
     - name: Change to afs.cmd and Publish
       run: |

@@ -42,9 +42,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ./HarfBuzzBinding/target
-        key: hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static-${{ github.sha }}
+        key: hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static
         restore-keys: |
-          hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static-
+          hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static
 
     - name: Check out code
       if: steps.cache.outputs.cache-hit != 'true'
