@@ -99,7 +99,7 @@ jobs:
       if: matrix.target == 'macos' && matrix.arch == 'x64' && steps.cache.outputs.cache-hit != 'true'
       run: |
         cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
-        meson --cross-file ../scripts/project.ini --cross-file ../scripts/${{ matrix.target }}-${{ matrix.arch }}-.ini -Ddefault_library=static build/${{ matrix.target }}-${{ matrix.arch }}--static
+        meson --cross-file ../scripts/project.ini --cross-file ../scripts/${{ matrix.target }}-${{ matrix.arch }}.ini -Ddefault_library=static build/${{ matrix.target }}-${{ matrix.arch }}-static
     
     - name: Build
       if: steps.cache.outputs.cache-hit != 'true'
