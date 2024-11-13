@@ -1,0 +1,114 @@
+name: Build hb-subset
+
+on:
+  push:
+    branches: [ "master" ]
+    paths:
+    - 'AssFontSubset.Core/**.cs'
+    - 'AssFontSubset.Core/**.csproj'
+    - 'AssFontSubset.Console/**.cs'
+    - 'AssFontSubset.Console/**.csproj'
+  pull_request:
+    branches: [ "master" ]
+    paths:
+    - 'AssFontSubset.Core/**.cs'
+    - 'AssFontSubset.Core/**.csproj'
+    - 'AssFontSubset.Console/**.cs'
+    - 'AssFontSubset.Console/**.csproj'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: build-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+        harfbuzz_ver: ['10.1.0']
+
+    steps:
+    - name: Set up cache
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: target
+        key: hb-subset-static-${{ matrix.os }}-${{ github.sha }}
+        restore-keys: |
+          hb-subset-static-${{ matrix.os }}-
+
+    - name: Check out code
+      uses: actions/checkout@v4
+    
+    - name: Prepare
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        python -m pip install meson ninja
+        cd ./HarfBuzzBinding
+        git clone --recurse-submodules https://github.com/harfbuzz/harfbuzz.git -b ${{ matrix.harfbuzz_ver }} --depth=1 harfbuzz-${{ matrix.harfbuzz_ver }}
+
+    - name: Setup msbuild (windows)
+      if: matrix.os == 'windows-latest' && steps.cache.outputs.cache-hit != 'true'
+      uses: ilammy/msvc-dev-cmd@v1
+    
+    - name: Setup Zig Compiler (windows)
+      if: matrix.os == 'windows-latest' && steps.cache.outputs.cache-hit != 'true'
+      uses: mlugg/setup-zig@v1
+      with:
+        version: "master"
+
+    - name: Build (windows)
+      if: matrix.os == 'windows-latest' && steps.cache.outputs.cache-hit != 'true'
+      run: |
+        cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
+        meson --native-file ../scripts/project.ini -Ddefault_library=static -Db_vscrt=static_from_buildtype build/win-x64-static
+        meson compile -C build/win-x64-static
+
+        vcvarsall x64_arm64
+        meson --cross-file ../scripts/project.ini --cross-file ../scripts/win-arm64.ini -Ddefault_library=static -Db_vscrt=static_from_buildtype build/win-arm64-static
+        meson compile -C build/win-arm64-static
+
+        meson --native-file ../scripts/zig.ini --cross-file ../scripts/zig.ini --cross-file ../scripts/project.ini --cross-file ../scripts/linux-musl-x64.ini -Ddefault_library=static build/linux-musl-x64-static
+        meson compile -C build/linux-musl-x64-static
+
+        meson --native-file ../scripts/zig.ini --cross-file ../scripts/zig.ini --cross-file ../scripts/project.ini --cross-file ../scripts/linux-musl-arm64.ini -Ddefault_library=static build/linux-musl-arm64-static
+        meson compile -C build/linux-musl-arm64-static
+
+        cd ..
+        mkdir target
+        cd target
+        mkdir win-x64-static
+        cp ../harfbuzz-${{ matrix.harfbuzz_ver }}/build/win-x64-static/src/*.a ./win-x64-static
+
+        mkdir win-arm64-static
+        cp ../harfbuzz-${{ matrix.harfbuzz_ver }}/build/win-arm64-static/src/*.a ./win-arm64-static
+
+        mkdir linux-musl-x64-static
+        cp ../harfbuzz-${{ matrix.harfbuzz_ver }}/build/linux-musl-x64-static/src/*.a ./linux-musl-x64-static
+
+        mkdir linux-musl-arm64-static
+        cp ../harfbuzz-${{ matrix.harfbuzz_ver }}/build/linux-musl-arm64-static/src/*.a ./linux-musl-arm64-static
+
+    - name: Build (macOS)
+      if: runner.os == 'macOS' && steps.cache.outputs.cache-hit != 'true'
+      run: |
+        cd ./HarfBuzzBinding/harfbuzz-${{ matrix.harfbuzz_ver }}
+        meson --native-file ../scripts/project.ini -Ddefault_library=static build/macos-arm64-static
+        meson compile -C build/macos-arm64-static
+
+        meson --cross-file ../scripts/project.ini --cross-file ../scripts/macos-x64.ini -Ddefault_library=static build/macos-x64-static
+        meson compile -C build/macos-x64-static
+
+        cd ..
+        mkdir target
+        cd target
+        mkdir macos-x64-static
+        cp ../harfbuzz-${{ matrix.harfbuzz_ver }}/build/macos-x64-static/src/*.a ./macos-x64-static
+
+        mkdir macos-arm64-static
+        cp ../harfbuzz-${{ matrix.harfbuzz_ver }}/build/macos-arm64-static/src/*.a ./macos-arm64-static
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-cache
+        path: target

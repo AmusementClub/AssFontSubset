@@ -15,7 +15,7 @@ on:
     - 'AssFontSubset.Core/**.csproj'
     - 'AssFontSubset.Console/**.cs'
     - 'AssFontSubset.Console/**.csproj'
-  workflow_dispatch:
+  # workflow_dispatch:
 
 env:
   hb_ver: 10.1.0
