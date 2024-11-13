@@ -28,7 +28,9 @@ jobs:
         arch: [x64, arm64]
         include:
           - os: windows-latest
-            target: [win, linux-musl]
+            target: win
+          - os: windows-latest
+            target: linux-musl
           - os: macos-latest
             target: macos
 
