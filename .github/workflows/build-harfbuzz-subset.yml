@@ -40,9 +40,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ./HarfBuzzBinding/target
-        key: hb-subset-static-${{ matrix.target }}-${{ matrix.arch }}-${{ github.sha }}
+        key: hb-subset-${{ matrix.harfbuzz_ver }}-static-${{ matrix.target }}-${{ matrix.arch }}-${{ github.sha }}
         restore-keys: |
-          hb-subset-static-${{ matrix.target }}-${{ matrix.arch }}-
+          hb-subset-${{ matrix.harfbuzz_ver }}-static-${{ matrix.target }}-${{ matrix.arch }}-
 
     - name: Check out code
       if: steps.cache.outputs.cache-hit != 'true'
@@ -112,5 +112,5 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: build-cache
+        name: hb-subset-${{ matrix.harfbuzz_ver }}-static-${{ matrix.target }}
         path: ./HarfBuzzBinding/target
