@@ -16,13 +16,13 @@ jobs:
     strategy:
       matrix:
         harfbuzz_ver: ['10.1.0']
-        target: [win, linux-musl] # macos
+        target: [win] # macos, linux-musl
         arch: [x64, arm64]
         include:
           - os: windows-latest
             target: win
-          - os: windows-latest
-            target: linux-musl
+          # - os: windows-latest
+          #   target: linux-musl
           # - os: macos-latest
           #   target: macos
         dotnet_version: ['8.x']
@@ -70,12 +70,14 @@ jobs:
         key: hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static-${{ github.sha }}
         restore-keys: |
           hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static-
-        run:
-          mkdir native
-          mv ./HarfBuzzBinding/target/* ./native/
+        # run:
+        #   mkdir native
+        #   mv ./HarfBuzzBinding/target/* ./native/
 
     - name: Change to afs.cmd and Publish
       run: |
+        ls ./
+        ls ./HarfBuzzBinding
         cd ./AssFontSubset.Console
         dotnet restore
         dotnet publish -c Release -r "${{ env.identifier }}" /p:PublishAot=true
