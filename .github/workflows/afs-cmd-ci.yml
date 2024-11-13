@@ -18,7 +18,7 @@ jobs:
       matrix:
         harfbuzz_ver: ['10.1.0']
         target: [win] # , linux-musl, osx
-        arch: [x64] # , arm64
+        arch: [x64, arm64] # , arm64
         include:
           - os: windows-latest
             target: win
