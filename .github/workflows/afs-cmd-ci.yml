@@ -11,7 +11,7 @@ jobs:
   build:
     name: build-${{ matrix.target }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    #if: ${{ github.event.workflow_run.conclusion == 'success' }}
     env:
       identifier: ${{ matrix.target }}-${{ matrix.arch }}
     strategy:
