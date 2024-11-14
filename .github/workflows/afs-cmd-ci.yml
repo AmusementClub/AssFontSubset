@@ -75,7 +75,7 @@ jobs:
 
         cd ./AssFontSubset.Console
         dotnet restore
-        dotnet publish -C Release -r ${{ env.identifier }}
+        dotnet publish -c Release -r ${{ env.identifier }}
 
         cd ..
 
