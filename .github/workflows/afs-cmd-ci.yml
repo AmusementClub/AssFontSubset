@@ -20,8 +20,8 @@ jobs:
         target: [osx] # , linux-musl, osx
         arch: ['arm64'] # , arm64
         include:
-          - os: windows-latest
-            target: win
+          #- os: windows-latest
+          #  target: win
           # - os: windows-latest
           #   target: linux-musl
           - os: macos-latest
