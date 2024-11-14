@@ -17,15 +17,15 @@ jobs:
     strategy:
       matrix:
         harfbuzz_ver: ['10.1.0']
-        target: [win] # , linux-musl, osx
-        arch: ['arm64'] # , arm64
+        target: [win, linux-musl, osx]
+        arch: [x64, arm64]
         include:
           - os: windows-latest
             target: win
-          #- os: windows-latest
-          #  target: linux-musl
-          #- os: macos-latest
-          #  target: osx
+          - os: windows-latest
+            target: linux-musl
+          - os: macos-latest
+            target: osx
         dotnet_version: ['8.x']
 
     steps:
@@ -49,16 +49,16 @@ jobs:
         dotnet test
         cd ..
 
-    # - name: Setup Zig Compiler (target linux)
-    #   if: matrix.target == 'linux-musl'
-    #   uses: mlugg/setup-zig@v1
-    #   with:
-    #     version: "master"
+    - name: Setup Zig Compiler (target linux)
+      if: matrix.target == 'linux-musl'
+      uses: mlugg/setup-zig@v1
+      with:
+        version: "master"
 
-    # - name: Add llvm-objcopy
-    #   if: matrix.target == 'linux-musl'
-    #   run: |
-    #     Invoke-WebRequest -Uri https://github.com/MIRIMIRIM/FontFlat/releases/download/harfbuzz-libs/llvm-objcopy.exe -OutFile ./AssFontSubset.Console/llvm-objcopy.exe
+    - name: Add llvm-objcopy
+      if: matrix.target == 'linux-musl'
+      run: |
+        Invoke-WebRequest -Uri https://github.com/MIRIMIRIM/FontFlat/releases/download/harfbuzz-libs/llvm-objcopy.exe -OutFile ./AssFontSubset.Console/llvm-objcopy.exe
 
     - name: Use prebuilt harfbuzz subset
       uses: actions/cache/restore@v4
@@ -75,7 +75,7 @@ jobs:
 
         cd ./AssFontSubset.Console
         dotnet restore
-        dotnet publish -r ${{ env.identifier }}
+        dotnet publish -C Release -r ${{ env.identifier }}
 
         cd ..
 
