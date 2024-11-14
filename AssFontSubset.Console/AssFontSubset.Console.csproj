@@ -26,9 +26,9 @@
 
   <ItemGroup>
     <DirectPInvoke Include="harfbuzz" />
-    <NativeLibrary Include="../native/libharfbuzz.a" Condition="$(RuntimeIdentifier.StartsWith('win-x64'))" />
+    <NativeLibrary Include="../native/libharfbuzz.a"/>
     <DirectPInvoke Include="harfbuzz-subset" />
-    <NativeLibrary Include="../native/libharfbuzz-subset.a" Condition="$(RuntimeIdentifier.StartsWith('win-x64'))" />
+    <NativeLibrary Include="../native/libharfbuzz-subset.a"/>
   </ItemGroup>
   
 </Project>

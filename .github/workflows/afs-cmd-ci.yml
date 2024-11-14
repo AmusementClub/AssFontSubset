@@ -1,41 +1,32 @@
-name: afs.cmd
+name: Build afs.cmd
 
 on:
-  push:
-    branches: [ "master" ]
-    paths:
-    - 'AssFontSubset.Core/**.cs'
-    - 'AssFontSubset.Core/**.csproj'
-    - 'AssFontSubset.Console/**.cs'
-    - 'AssFontSubset.Console/**.csproj'
-  pull_request:
-    branches: [ "master" ]
-    paths:
-    - 'AssFontSubset.Core/**.cs'
-    - 'AssFontSubset.Core/**.csproj'
-    - 'AssFontSubset.Console/**.cs'
-    - 'AssFontSubset.Console/**.csproj'
+  workflow_run:
+    workflows: ["Build hb-subset"]
+    types:
+      - completed
   workflow_dispatch:
-
-env:
-  hb_ver: 10.1.0
 
 jobs:
   build:
+    name: build-${{ matrix.target }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    #if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    env:
+      identifier: ${{ matrix.target }}-${{ matrix.arch }}
     strategy:
       matrix:
-        env:
+        harfbuzz_ver: ['10.1.0']
+        target: [win, linux-musl, osx]
+        arch: [x64, arm64]
+        include:
           - os: windows-latest
-            identifier: win
-          # - os: macos-latest
-          #   identifier: osx
-          # - os: ubuntu-latest
-          #   identifier: linux
-        arch: ['x64'] # 'arm64'
+            target: win
+          - os: windows-latest
+            target: linux-musl
+          - os: macos-latest
+            target: osx
         dotnet_version: ['8.x']
-
-    name: build-${{ matrix.env.os }}-${{ matrix.arch }}
-    runs-on: ${{ matrix.env.os }}
 
     steps:
 
@@ -58,35 +49,34 @@ jobs:
         dotnet test
         cd ..
 
-    # - name: Install linux arm64 prereqs
-    #   # copy from https://github.com/dn-vm/dnvm
-    #   if: matrix.env.identifier == 'linux' && matrix.arch == 'arm64'
-    #   run: |
-    #     sudo dpkg --add-architecture arm64
-    #     sudo bash -c 'cat > /etc/apt/sources.list.d/arm64.list <<EOF
-    #     deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy main restricted ports
-    #     deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-updates main restricted
-    #     deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports/ jammy-backports main restricted universe multiverse
-    #     EOF'
-    #     sudo sed -i -e 's/deb http/deb [arch=amd64] http/g' /etc/apt/sources.list
-    #     sudo sed -i -e 's/deb mirror/deb [arch=amd64] mirror/g' /etc/apt/sources.list
-    #     sudo apt update
-    #     sudo apt install -y clang llvm binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu zlib1g-dev:arm64
+    - name: Setup Zig Compiler (target linux)
+      if: matrix.target == 'linux-musl'
+      uses: mlugg/setup-zig@v1
+      with:
+        version: "master"
 
-    - name: Download prebuilt harfbuzz libs
-      if: matrix.env.identifier == 'win' && matrix.arch == 'x64'
+    - name: Add llvm-objcopy
+      if: matrix.target == 'linux-musl'
       run: |
-        mkdir native
-        Invoke-WebRequest -Uri https://github.com/MIRIMIRIM/FontFlat/releases/download/harfbuzz-libs/harfbuzz_win-x64_${{ env.hb_ver }}.7z -OutFile ./native/harfbuzz_win-x64.7z
-        cd ./native
-        7z x harfbuzz_win-x64.7z
-        cd ..
+        Invoke-WebRequest -Uri https://github.com/MIRIMIRIM/FontFlat/releases/download/harfbuzz-libs/llvm-objcopy.exe -OutFile ./AssFontSubset.Console/llvm-objcopy.exe
+
+    - name: Use prebuilt harfbuzz subset
+      uses: actions/cache/restore@v4
+      with:
+        path: ./HarfBuzzBinding/target
+        key: hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static
+        # restore-keys: |
+        #   hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static-
 
     - name: Change to afs.cmd and Publish
       run: |
+        mkdir native
+        mv ./HarfBuzzBinding/target/* ./native/
+
         cd ./AssFontSubset.Console
         dotnet restore
-        dotnet publish -c Release -r "${{ matrix.env.identifier }}-${{ matrix.arch }}" /p:PublishAot=true
+        dotnet publish -c Release -r ${{ env.identifier }}
+
         cd ..
 
     - name: Set short version
@@ -98,10 +88,10 @@ jobs:
     - name: Upload exe files
       uses: actions/upload-artifact@v4
       with:
-        name: AssFontSubset.Console_g${{ env.VERSION }}_${{ matrix.env.identifier }}-${{ matrix.arch }}
+        name: AssFontSubset.Console_g${{ env.VERSION }}_${{ env.identifier }}
         path: |
-          AssFontSubset.Console/bin/Release/net8.0/${{ matrix.env.identifier }}-${{ matrix.arch }}/publish/
-          !AssFontSubset.Console/bin/Release/net8.0/${{ matrix.env.identifier }}-${{ matrix.arch }}/publish/*.pdb
-          !AssFontSubset.Console/bin/Release/net8.0/${{ matrix.env.identifier }}-${{ matrix.arch }}/publish/*.dbg
-          !AssFontSubset.Console/bin/Release/net8.0/${{ matrix.env.identifier }}-${{ matrix.arch }}/publish/*.dwarf
-          !AssFontSubset.Console/bin/Release/net8.0/${{ matrix.env.identifier }}-${{ matrix.arch }}/publish/*.dsym
+          AssFontSubset.Console/bin/Release/net8.0/${{ env.identifier }}/publish/
+          !AssFontSubset.Console/bin/Release/net8.0/${{ env.identifier }}/publish/*.pdb
+          !AssFontSubset.Console/bin/Release/net8.0/${{ env.identifier }}/publish/*.dbg
+          !AssFontSubset.Console/bin/Release/net8.0/${{ env.identifier }}/publish/*.dwarf
+          !AssFontSubset.Console/bin/Release/net8.0/${{ env.identifier }}/publish/*.dsym
