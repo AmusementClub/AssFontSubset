@@ -1,20 +1,6 @@
 name: Build hb-subset
 
 on:
-  push:
-    branches: [ "master" ]
-    paths:
-    - 'AssFontSubset.Core/**.cs'
-    - 'AssFontSubset.Core/**.csproj'
-    - 'AssFontSubset.Console/**.cs'
-    - 'AssFontSubset.Console/**.csproj'
-  pull_request:
-    branches: [ "master" ]
-    paths:
-    - 'AssFontSubset.Core/**.cs'
-    - 'AssFontSubset.Core/**.csproj'
-    - 'AssFontSubset.Console/**.cs'
-    - 'AssFontSubset.Console/**.csproj'
   workflow_dispatch:
 
 jobs:

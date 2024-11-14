@@ -1,17 +1,26 @@
 name: Build afs.cmd
 
 on:
-  workflow_run:
-    workflows: ["Build hb-subset"]
-    types:
-      - completed
+  push:
+    branches: [ "master" ]
+    paths:
+      - 'AssFontSubset.Core/**.cs'
+      - 'AssFontSubset.Core/**.csproj'
+      - 'AssFontSubset.Console/**.cs'
+      - 'AssFontSubset.Console/**.csproj'
+  pull_request:
+    branches: [ "master" ]
+    paths:
+      - 'AssFontSubset.Core/**.cs'
+      - 'AssFontSubset.Core/**.csproj'
+      - 'AssFontSubset.Console/**.cs'
+      - 'AssFontSubset.Console/**.csproj'
   workflow_dispatch:
 
 jobs:
   build:
     name: build-${{ matrix.target }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
-    #if: ${{ github.event.workflow_run.conclusion == 'success' }}
     env:
       identifier: ${{ matrix.target }}-${{ matrix.arch }}
     strategy:
@@ -65,8 +74,7 @@ jobs:
       with:
         path: ./HarfBuzzBinding/target
         key: hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static
-        # restore-keys: |
-        #   hb-subset-${{ matrix.harfbuzz_ver }}-${{ env.identifier }}-static-
+        fail-on-cache-miss: true
 
     - name: Change to afs.cmd and Publish
       run: |
