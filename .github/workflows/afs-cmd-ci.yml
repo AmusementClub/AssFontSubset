@@ -18,7 +18,7 @@ jobs:
       matrix:
         harfbuzz_ver: ['10.1.0']
         target: [osx] # , linux-musl, osx
-        arch: [ arm64] # , arm64
+        arch: ['arm64'] # , arm64
         include:
           - os: windows-latest
             target: win
@@ -75,7 +75,7 @@ jobs:
 
         cd ./AssFontSubset.Console
         dotnet restore
-        dotnet publish -c Release -r "${{ env.identifier }}" /p:PublishAot=true
+        dotnet publish -c Release -r "${{ env.identifier }}"
         cd ..
 
     - name: Set short version
