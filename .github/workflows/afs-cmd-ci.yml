@@ -35,7 +35,7 @@ jobs:
             target: linux-musl
           - os: macos-latest
             target: osx
-        dotnet_version: ['8.x']
+        dotnet_version: ['9.x']
 
     steps:
 
