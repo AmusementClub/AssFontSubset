@@ -35,7 +35,7 @@ jobs:
             target: linux-musl
           - os: macos-latest
             target: osx
-        dotnet_version: ['8.0.403']
+        dotnet_version: ['9.x']
 
     steps:
 
@@ -55,7 +55,7 @@ jobs:
         dotnet --version
         cd ./AssFontSubset.CoreTests
         dotnet restore
-        dotnet test -f net8.0
+        dotnet test
         cd ..
 
     - name: Setup Zig Compiler (target linux)
@@ -64,7 +64,7 @@ jobs:
       with:
         version: "master"
 
-    - name: Add llvm-objcopy
+    - name: Add llvm-objcopy (target linux)
       if: matrix.target == 'linux-musl'
       run: |
         Invoke-WebRequest -Uri https://github.com/MIRIMIRIM/FontFlat/releases/download/harfbuzz-libs/llvm-objcopy.exe -OutFile ./AssFontSubset.Console/llvm-objcopy.exe
@@ -77,6 +77,20 @@ jobs:
         fail-on-cache-miss: true
 
     - name: Change to afs.cmd and Publish
+      if: matrix.target != 'linux-musl'
+      run: |
+        mkdir native
+        mv ./HarfBuzzBinding/target/* ./native/
+
+        cd ./AssFontSubset.Console
+        dotnet restore
+        dotnet publish -c Release -r ${{ env.identifier }} -f net9.0
+
+        cd ..
+
+    # need zig fix? https://github.com/ziglang/zig/pull/20081
+    - name: Change to afs.cmd and Publish (target linux)
+      if: matrix.target == 'linux-musl'
       run: |
         mkdir native
         mv ./HarfBuzzBinding/target/* ./native/
@@ -94,6 +108,19 @@ jobs:
           echo "VERSION=$ver_short" >> $GITHUB_ENV
 
     - name: Upload exe files
+      if: matrix.target != 'linux-musl'
+      uses: actions/upload-artifact@v4
+      with:
+        name: AssFontSubset.Console_g${{ env.VERSION }}_${{ env.identifier }}
+        path: |
+          AssFontSubset.Console/bin/Release/net9.0/${{ env.identifier }}/publish/
+          !AssFontSubset.Console/bin/Release/net9.0/${{ env.identifier }}/publish/*.pdb
+          !AssFontSubset.Console/bin/Release/net9.0/${{ env.identifier }}/publish/*.dbg
+          !AssFontSubset.Console/bin/Release/net9.0/${{ env.identifier }}/publish/*.dwarf
+          !AssFontSubset.Console/bin/Release/net9.0/${{ env.identifier }}/publish/*.dsym
+
+    - name: Upload exe files
+      if: matrix.target == 'linux-musl'
       uses: actions/upload-artifact@v4
       with:
         name: AssFontSubset.Console_g${{ env.VERSION }}_${{ env.identifier }}
