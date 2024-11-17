@@ -9,7 +9,7 @@
   
   <ItemGroup>
     <PackageReference Include="PublishAotCross" Version="1.0.0" />
-    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.24324.3" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.24528.1" />
   </ItemGroup>
 
   <ItemGroup>

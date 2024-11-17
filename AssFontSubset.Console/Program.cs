@@ -23,7 +23,7 @@ internal static class Program
         };
         var subsetBackend = new CliOption<SubsetBackend>("--subset-backend")
         {
-            Description = "子集化使用的后端（目前只有 win-x64 支持 HarfBuzzSubset）",
+            Description = "子集化使用的后端",
             DefaultValueFactory = _ => SubsetBackend.PyFontTools,
         };
         var binPath = new CliOption<DirectoryInfo>("--bin-path")
