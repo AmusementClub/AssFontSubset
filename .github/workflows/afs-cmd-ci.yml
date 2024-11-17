@@ -55,7 +55,7 @@ jobs:
         dotnet --version
         cd ./AssFontSubset.CoreTests
         dotnet restore
-        dotnet test
+        dotnet test -f net8.0
         cd ..
 
     - name: Setup Zig Compiler (target linux)
