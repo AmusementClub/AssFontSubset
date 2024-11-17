@@ -35,7 +35,7 @@ jobs:
             target: linux-musl
           - os: macos-latest
             target: osx
-        dotnet_version: ['9.x']
+        dotnet_version: ['8.0.403']
 
     steps:
 
@@ -83,7 +83,7 @@ jobs:
 
         cd ./AssFontSubset.Console
         dotnet restore
-        dotnet publish -c Release -r ${{ env.identifier }}
+        dotnet publish -c Release -r ${{ env.identifier }} -f net8.0
 
         cd ..
 
