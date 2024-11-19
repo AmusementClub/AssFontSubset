@@ -83,7 +83,7 @@ public unsafe class HarfBuzzSubset(ILogger? logger) : SubsetToolBase
         sw.Start();
         
         _ = Methods.TryGetFontFace(ssf.OriginalFontFile.FullName, ssf.TrackIndex, out var facePtr);
-        facePtr = SubsetApis.hb_subset_preprocess(facePtr);
+        //facePtr = SubsetApis.hb_subset_preprocess(facePtr);
         
         var input = SubsetApis.hb_subset_input_create_or_fail();
         
@@ -99,6 +99,8 @@ public unsafe class HarfBuzzSubset(ILogger? logger) : SubsetToolBase
         {
             HBApis.hb_set_add(features, HBApis.hb_tag_from_string((sbyte*)Marshal.StringToHGlobalAnsi(feature), -1));
         }
+
+        // need drop hinting?
 
         Methods.RenameFontname(input,
             (sbyte*)Marshal.StringToHGlobalAnsi($"Processed by AssFontSubset v{System.Reflection.Assembly.GetEntryAssembly()!.GetName().Version}; harfbuzz-subset {hbssVersion}"),
