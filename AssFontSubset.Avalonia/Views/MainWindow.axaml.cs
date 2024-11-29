@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using MsBox.Avalonia.Base;
 using System.ComponentModel;
 using AssFontSubset.Avalonia.ViewModels;
+using I18nResources = AssFontSubset.Avalonia.I18n.Resources;
 
 namespace AssFontSubset.Avalonia.Views
 {
@@ -22,7 +23,7 @@ namespace AssFontSubset.Avalonia.Views
         {
             InitializeComponent();
             DataContext = new MainWindowViewModel();
-            AddHandler(DragDrop.DropEvent, Window_Drop);
+            AddHandler(DragDrop.DropEvent, Drop_Files);
         }
 
         private void Clear_Click(object sender, RoutedEventArgs e)
@@ -36,10 +37,11 @@ namespace AssFontSubset.Avalonia.Views
         {
             var sourceHanEllipsis = this.FindControl<CheckBox>("SourceHanEllipsis")!.IsChecked!.Value;
             var debugMode = this.FindControl<CheckBox>("Debug")!.IsChecked!.Value;
+            var useHbSubset = this.FindControl<CheckBox>("UseHbSubset")!.IsChecked!.Value;
 
             if (AssFileList.Items.Count == 0)
             {
-                await ShowMessageBox("Error", "没有 ASS 文件可供处理，请检查");
+                await ShowMessageBox("Error", I18nResources.ErrorNoAssFile);
                 return;
             }
             var path = new FileInfo[AssFileList.Items.Count];
@@ -51,23 +53,25 @@ namespace AssFontSubset.Avalonia.Views
             var outputPath = new DirectoryInfo(OutputFolder.Text!);
             DirectoryInfo? binPath = null;
 
-            await AssFontSubsetByPyFT(path, fontPath, outputPath, binPath, sourceHanEllipsis, debugMode);
+            var subsetConfig = new SubsetConfig
+            {
+                SourceHanEllipsis = sourceHanEllipsis,
+                DebugMode = debugMode,
+                Backend = useHbSubset ? SubsetBackend.HarfBuzzSubset : SubsetBackend.PyFontTools,
+            };
+            
+            await AssFontSubsetByPyFT(path, fontPath, outputPath, binPath, subsetConfig);
         }
 
-        private async Task AssFontSubsetByPyFT(FileInfo[] path, DirectoryInfo? fontPath, DirectoryInfo? outputPath, DirectoryInfo? binPath, bool sourceHanEllipsis, bool debug)
+        private async Task AssFontSubsetByPyFT(FileInfo[] path, DirectoryInfo? fontPath, DirectoryInfo? outputPath, DirectoryInfo? binPath, SubsetConfig subsetConfig)
         {
             try
             {
-                var subsetConfig = new SubsetConfig
-                {
-                    SourceHanEllipsis = sourceHanEllipsis,
-                    DebugMode = debug,
-                };
                 Progressing.IsIndeterminate = true;
                 var ssFt = new SubsetCore();
                 await ssFt.SubsetAsync(path, fontPath, outputPath, binPath, subsetConfig);
                 Progressing.IsIndeterminate = false;
-                await ShowMessageBox("Sucess", "子集化完成，请检查 output 文件夹");
+                await ShowMessageBox("Success", I18nResources.SuccessSubset);
             }
             catch (Exception ex)
             {
@@ -81,29 +85,20 @@ namespace AssFontSubset.Avalonia.Views
             var box = MessageBoxManager.GetMessageBoxStandard(title, message, ButtonEnum.Ok, MsBox.Avalonia.Enums.Icon.None, WindowStartupLocation.CenterOwner);
             await box.ShowWindowDialogAsync(this);
         }
-
-        private void FileDrop(IStorageItem[] files)
+        
+        private void Drop_Files(object? sender, DragEventArgs e)
         {
+            var dragData = (IEnumerable<IStorageItem>?)e.Data.Get(DataFormats.Files);
+            if (dragData == null) return;
+            var files = dragData.ToArray();
+            
             var validFiles = files.Where(f => Path.GetExtension(f.Name) == ".ass").ToArray();
-            if (validFiles.Length == 0)
-            {
-                return;
-            }
+            if (validFiles.Length == 0) return;
 
             AssFileList.ItemsSource = validFiles.Select(f => f.Path.LocalPath).Order().ToList();
             var dir = validFiles[0].GetParentAsync().Result;
             FontFolder.Text = Path.Combine(dir!.Path.LocalPath, "fonts");
             OutputFolder.Text = Path.Combine(dir!.Path.LocalPath, "output");
-        }
-
-        private void Window_Drop(object? sender, DragEventArgs e)
-        {
-            var dragData = (IEnumerable<IStorageItem>?)e.Data.Get(DataFormats.Files);
-            if (dragData != null)
-            {
-                var files = dragData.ToArray();
-                FileDrop(files);
-            }
         }
     }
 }

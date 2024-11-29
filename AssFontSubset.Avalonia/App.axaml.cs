@@ -17,6 +17,8 @@ namespace AssFontSubset.Avalonia
 
         public override void OnFrameworkInitializationCompleted()
         {
+            I18n.Resources.Culture = System.Globalization.CultureInfo.CurrentUICulture;
+            
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 // Line below is needed to remove Avalonia data validation.
