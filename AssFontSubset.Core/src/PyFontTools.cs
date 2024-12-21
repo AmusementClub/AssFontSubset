@@ -208,7 +208,7 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger) : Subse
 
             if (exitCode != 0)
             {
-                logger?.ZLogError($"Return exitcode {exitCode}，error output: {outputStr}");
+                logger?.ZLogError($"Return exitcode {exitCode}, error output: {errorOutput.TrimEnd()}");
                 success = false;
             }
             else
