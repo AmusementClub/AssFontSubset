@@ -265,14 +265,19 @@ public class SubsetCore(ILogger? logger = null)
             foreach (var range in evt.TextRanges)
             {
                 var block = text[range];
-                if (AssEvent.IsOverrideBlock(block) && ReplaceFontName(block, assFontNameMapSort, sb))
+                Debug.WriteLine($"{range.Start}:{range.End}:{block}");
+                if (AssEvent.IsOverrideBlock(block))
                 {
-                    lineChanged = true;
+                    if (ReplaceFontName(block, assFontNameMapSort, sb))
+                    {
+                        lineChanged = true;
+                    }
                 }
                 else
                 {
                     sb.Append(block);
                 }
+                Debug.WriteLine(sb.ToString());
             }
 
             if (lineChanged)
