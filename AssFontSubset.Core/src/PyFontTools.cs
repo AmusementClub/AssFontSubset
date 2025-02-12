@@ -203,7 +203,6 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger) : Subse
             process.WaitForExit();
             var exitCode = process.ExitCode;
 
-            var processTime = process.TotalProcessorTime;
             sw.Stop();
 
             if (exitCode != 0)
