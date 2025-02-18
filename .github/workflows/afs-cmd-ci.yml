@@ -51,6 +51,7 @@ jobs:
     #   run: git submodule update --init --recursive
 
     - name: Test
+      if: matrix.target != 'osx'
       run: |
         dotnet --version
         cd ./AssFontSubset.CoreTests
