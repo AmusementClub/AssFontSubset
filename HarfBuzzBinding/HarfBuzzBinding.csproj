@@ -19,6 +19,16 @@
         <PackageSuffix>Mac</PackageSuffix>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" $(RuntimeIdentifier.StartsWith('win')) ">
+        <PackageSuffix>Win</PackageSuffix>
+    </PropertyGroup>
+    <PropertyGroup Condition=" $(RuntimeIdentifier.StartsWith('linux')) ">
+        <PackageSuffix>Linux</PackageSuffix>
+    </PropertyGroup>
+    <PropertyGroup Condition=" $(RuntimeIdentifier.StartsWith('osx')) ">
+        <PackageSuffix>Mac</PackageSuffix>
+    </PropertyGroup>
+    
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
         <NativeLibraryType>Shared</NativeLibraryType>
     </PropertyGroup>
