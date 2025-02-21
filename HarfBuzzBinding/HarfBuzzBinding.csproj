@@ -3,10 +3,41 @@
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <LangVersion>latest</LangVersion>
-        <Version>0.0.1</Version>
+        <Version>0.1.0</Version>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
+
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <PackageSuffix>Win</PackageSuffix>
+    </PropertyGroup>
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+        <PackageSuffix>Linux</PackageSuffix>
+    </PropertyGroup>
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+        <PackageSuffix>Mac</PackageSuffix>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" $(RuntimeIdentifier.StartsWith('win')) ">
+        <PackageSuffix>Win</PackageSuffix>
+    </PropertyGroup>
+    <PropertyGroup Condition=" $(RuntimeIdentifier.StartsWith('linux')) ">
+        <PackageSuffix>Linux</PackageSuffix>
+    </PropertyGroup>
+    <PropertyGroup Condition=" $(RuntimeIdentifier.StartsWith('osx')) ">
+        <PackageSuffix>Mac</PackageSuffix>
+    </PropertyGroup>
+    
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <NativeLibraryType>Shared</NativeLibraryType>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <NativeLibraryType>Static</NativeLibraryType>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="MIR.NativeLib.Harfbuzz.$(NativeLibraryType).$(PackageSuffix)" Version="10.1.0.0" />
+    </ItemGroup>
 
 </Project>

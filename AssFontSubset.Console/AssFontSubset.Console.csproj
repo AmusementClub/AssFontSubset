@@ -17,19 +17,12 @@
   </ItemGroup>
 
   <Import Project="..\build\global.props" />
-
-  <Target Name="CopyNativeFiles" AfterTargets="Build" Condition=" '$(Configuration)' == 'Debug' and $([MSBuild]::IsOSPlatform('Windows')) ">
-    <Copy SourceFiles="..\native\harfbuzz.dll" DestinationFolder="$(OutputPath)" />
-    <Copy SourceFiles="..\native\harfbuzz-subset.dll" DestinationFolder="$(OutputPath)" />
-    <Copy SourceFiles="..\native\harfbuzz.pdb" DestinationFolder="$(OutputPath)" />
-    <Copy SourceFiles="..\native\harfbuzz-subset.pdb" DestinationFolder="$(OutputPath)" />
-  </Target>
-
-  <ItemGroup>
+  
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
     <DirectPInvoke Include="harfbuzz" />
-    <NativeLibrary Include="../native/libharfbuzz.a" />
+    <NativeLibrary Include="$(OutputPath)libharfbuzz.a" />
     <DirectPInvoke Include="harfbuzz-subset" />
-    <NativeLibrary Include="../native/libharfbuzz-subset.a" />
+    <NativeLibrary Include="$(OutputPath)libharfbuzz-subset.a" />
   </ItemGroup>
   
 </Project>
