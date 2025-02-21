@@ -19,18 +19,15 @@ on:
 
 jobs:
   build:
-    name: build-${{ matrix.target }}-${{ matrix.arch }}
-    runs-on: ${{ matrix.os }}
+    name: build-${{ matrix.config.target }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.config.os }}
     env:
-      identifier: ${{ matrix.target }}-${{ matrix.arch }}
+      identifier: ${{ matrix.config.target }}-${{ matrix.arch }}
     strategy:
       matrix:
         harfbuzz_ver: ['10.1.0']
-        os: [windows-latest, macos-latest]
-        target: [win, linux-musl, osx]
-        framework: [net8.0, net9.0]
-        arch: [x64, arm64]
-        include:
+        dotnet_version: ['9.x']
+        config:
           - os: windows-latest
             target: win
             framework: net9.0
@@ -40,7 +37,7 @@ jobs:
           - os: macos-latest
             target: osx
             framework: net9.0
-        dotnet_version: ['9.x']
+        arch: [x64, arm64]
 
     steps:
 
@@ -53,7 +50,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Test
-      if: matrix.target != 'osx'
+      if: matrix.config.target != 'osx'
       run: |
         dotnet --version
         cd ./AssFontSubset.CoreTests
@@ -62,13 +59,13 @@ jobs:
         cd ..
 
     - name: Setup Zig Compiler (target linux)
-      if: matrix.target == 'linux-musl'
+      if: matrix.config.target == 'linux-musl'
       uses: mlugg/setup-zig@v1
       with:
         version: "master"
 
     - name: Add llvm-objcopy (target linux)
-      if: matrix.target == 'linux-musl'
+      if: matrix.config.target == 'linux-musl'
       run: |
         Invoke-WebRequest -Uri https://github.com/MIRIMIRIM/build-harfbuzz/releases/download/utils/llvm-objcopy.exe -OutFile ./AssFontSubset.Console/llvm-objcopy.exe
 
@@ -76,7 +73,7 @@ jobs:
       run: |
         cd ./AssFontSubset.Console
         dotnet restore
-        dotnet publish -c Release -r ${{ env.identifier }} -f ${{ matrix.framework }}
+        dotnet publish -c Release -r ${{ env.identifier }} -f ${{ matrix.config.framework }}
 
     - name: Set short version
       shell: bash
@@ -89,9 +86,9 @@ jobs:
       with:
         name: AssFontSubset.Console_g${{ env.VERSION }}_${{ env.identifier }}
         path: |
-          AssFontSubset.Console/bin/Release/${{ matrix.framework }}/${{ env.identifier }}/publish/
-          !AssFontSubset.Console/bin/Release/${{ matrix.framework }}/${{ env.identifier }}/publish/*.a
-          !AssFontSubset.Console/bin/Release/${{ matrix.framework }}/${{ env.identifier }}/publish/*.pdb
-          !AssFontSubset.Console/bin/Release/${{ matrix.framework }}/${{ env.identifier }}/publish/*.dbg
-          !AssFontSubset.Console/bin/Release/${{ matrix.framework }}/${{ env.identifier }}/publish/*.dwarf
-          !AssFontSubset.Console/bin/Release/${{ matrix.framework }}/${{ env.identifier }}/publish/*.dSYM
+          AssFontSubset.Console/bin/Release/${{ matrix.config.framework }}/${{ env.identifier }}/publish/
+          !AssFontSubset.Console/bin/Release/${{ matrix.config.framework }}/${{ env.identifier }}/publish/*.a
+          !AssFontSubset.Console/bin/Release/${{ matrix.config.framework }}/${{ env.identifier }}/publish/*.pdb
+          !AssFontSubset.Console/bin/Release/${{ matrix.config.framework }}/${{ env.identifier }}/publish/*.dbg
+          !AssFontSubset.Console/bin/Release/${{ matrix.config.framework }}/${{ env.identifier }}/publish/*.dwarf
+          !AssFontSubset.Console/bin/Release/${{ matrix.config.framework }}/${{ env.identifier }}/publish/*.dSYM
