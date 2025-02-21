@@ -26,15 +26,18 @@ jobs:
     strategy:
       matrix:
         harfbuzz_ver: ['10.1.0']
-        target: [win, linux-musl, osx]
+        # target: [win, linux-musl, osx]
         arch: [x64, arm64]
         include:
           - os: windows-latest
             target: win
+            framework: 'net9.0'
           - os: windows-latest
             target: linux-musl
+            framework: 'net8.0' # need zig fix? https://github.com/ziglang/zig/pull/20081
           - os: macos-latest
             target: osx
+            framework: 'net9.0'
         dotnet_version: ['9.x']
 
     steps:
@@ -46,9 +49,6 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v4
-
-    # - name: Update submodule
-    #   run: git submodule update --init --recursive
 
     - name: Test
       if: matrix.target != 'osx'
@@ -71,23 +71,10 @@ jobs:
         Invoke-WebRequest -Uri https://github.com/MIRIMIRIM/build-harfbuzz/releases/download/utils/llvm-objcopy.exe -OutFile ./AssFontSubset.Console/llvm-objcopy.exe
 
     - name: Change to afs.cmd and Publish
-      if: matrix.target != 'linux-musl'
       run: |
         cd ./AssFontSubset.Console
         dotnet restore
-        dotnet publish -c Release -r ${{ env.identifier }} -f net9.0
-
-        cd ..
-
-    # need zig fix? https://github.com/ziglang/zig/pull/20081
-    - name: Change to afs.cmd and Publish (target linux)
-      if: matrix.target == 'linux-musl'
-      run: |
-        cd ./AssFontSubset.Console
-        dotnet restore
-        dotnet publish -c Release -r ${{ env.identifier }} -f net8.0
-
-        cd ..
+        dotnet publish -c Release -r ${{ env.identifier }} -f ${{ matrix.framework }}
 
     - name: Set short version
       shell: bash
@@ -96,25 +83,13 @@ jobs:
           echo "VERSION=$ver_short" >> $GITHUB_ENV
 
     - name: Upload exe files
-      if: matrix.target != 'linux-musl'
       uses: actions/upload-artifact@v4
       with:
         name: AssFontSubset.Console_g${{ env.VERSION }}_${{ env.identifier }}
         path: |
-          AssFontSubset.Console/bin/Release/net9.0/${{ env.identifier }}/publish/
-          !AssFontSubset.Console/bin/Release/net9.0/${{ env.identifier }}/publish/*.pdb
-          !AssFontSubset.Console/bin/Release/net9.0/${{ env.identifier }}/publish/*.dbg
-          !AssFontSubset.Console/bin/Release/net9.0/${{ env.identifier }}/publish/*.dwarf
-          !AssFontSubset.Console/bin/Release/net9.0/${{ env.identifier }}/publish/*.dsym
-
-    - name: Upload exe files
-      if: matrix.target == 'linux-musl'
-      uses: actions/upload-artifact@v4
-      with:
-        name: AssFontSubset.Console_g${{ env.VERSION }}_${{ env.identifier }}
-        path: |
-          AssFontSubset.Console/bin/Release/net8.0/${{ env.identifier }}/publish/
-          !AssFontSubset.Console/bin/Release/net8.0/${{ env.identifier }}/publish/*.pdb
-          !AssFontSubset.Console/bin/Release/net8.0/${{ env.identifier }}/publish/*.dbg
-          !AssFontSubset.Console/bin/Release/net8.0/${{ env.identifier }}/publish/*.dwarf
-          !AssFontSubset.Console/bin/Release/net8.0/${{ env.identifier }}/publish/*.dsym
+          AssFontSubset.Console/bin/Release/${{ matrix.framework }}/${{ env.identifier }}/publish/
+          !AssFontSubset.Console/bin/Release/${{ matrix.framework }}/${{ env.identifier }}/publish/*.a
+          !AssFontSubset.Console/bin/Release/${{ matrix.framework }}/${{ env.identifier }}/publish/*.pdb
+          !AssFontSubset.Console/bin/Release/${{ matrix.framework }}/${{ env.identifier }}/publish/*.dbg
+          !AssFontSubset.Console/bin/Release/${{ matrix.framework }}/${{ env.identifier }}/publish/*.dwarf
+          !AssFontSubset.Console/bin/Release/${{ matrix.framework }}/${{ env.identifier }}/publish/*.dSYM
