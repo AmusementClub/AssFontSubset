@@ -26,8 +26,8 @@ jobs:
     strategy:
       matrix:
         harfbuzz_ver: ['10.1.0']
-        target: []
-        framework: []
+        target: [win, linux-musl, osx]
+        framework: ['net8.0', 'net9.0']
         arch: [x64, arm64]
         include:
           - os: windows-latest
