@@ -249,7 +249,6 @@ public class SubsetCore(ILogger? logger = null)
                 {
                     style.Fontname = newFn;
                 }
-
             }
         }
         
