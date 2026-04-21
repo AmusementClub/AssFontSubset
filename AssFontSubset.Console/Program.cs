@@ -9,39 +9,39 @@ internal static class Program
 {
     static async Task<int> Main(string[] args)
     {
-        var path = new CliArgument<FileInfo[]>("path")
+        var path = new Argument<FileInfo[]>("path")
         {
             Description = "要子集化的 ASS 字幕文件路径，可以输入多个同目录的字幕文件"
         };
-        var fontPath = new CliOption<DirectoryInfo>("--fonts")
+        var fontPath = new Option<DirectoryInfo>("--fonts")
         {
             Description = "ASS 字幕文件需要的字体所在目录，默认为 ASS 同目录的 fonts 文件夹"
         };
-        var outputPath = new CliOption<DirectoryInfo>("--output")
+        var outputPath = new Option<DirectoryInfo>("--output")
         {
             Description = "子集化后成品所在目录，默认为 ASS 同目录的 output 文件夹"
         };
-        var subsetBackend = new CliOption<SubsetBackend>("--subset-backend")
+        var subsetBackend = new Option<SubsetBackend>("--subset-backend")
         {
             Description = "子集化使用的后端",
             DefaultValueFactory = _ => SubsetBackend.PyFontTools,
         };
-        var binPath = new CliOption<DirectoryInfo>("--bin-path")
+        var binPath = new Option<DirectoryInfo>("--bin-path")
         {
             Description = "指定 pyftsubset 和 ttx 所在目录。若未指定，会使用环境变量中的"
         };
-        var sourceHanEllipsis = new CliOption<bool>("--source-han-ellipsis")
+        var sourceHanEllipsis = new Option<bool>("--source-han-ellipsis")
         {
             Description = "使思源黑体和宋体的省略号居中对齐",
             DefaultValueFactory = _ => true,
         };
-        var debug = new CliOption<bool>("--debug")
+        var debug = new Option<bool>("--debug")
         {
             Description = "保留子集化期间的各种临时文件，位于 --output-dir 指定的文件夹；同时打印出所有运行的命令",
             DefaultValueFactory = _ => false,
         };
 
-        var rootCommand = new CliRootCommand("使用 fonttools 或 harfbuzz-subset 生成 ASS 字幕文件的字体子集，并自动修改字体名称及 ASS 文件中对应的字体名称")
+        var rootCommand = new RootCommand("使用 fonttools 或 harfbuzz-subset 生成 ASS 字幕文件的字体子集，并自动修改字体名称及 ASS 文件中对应的字体名称")
         {
             path, fontPath, outputPath, subsetBackend, binPath, sourceHanEllipsis, debug
         };
@@ -58,7 +58,7 @@ internal static class Program
                 result.GetValue(debug)
             );
         });
-        var config = new CliConfiguration(rootCommand)
+        var invocationConfiguration = new InvocationConfiguration
         {
             EnableDefaultExceptionHandler = false,
         };
@@ -66,7 +66,7 @@ internal static class Program
         int exitCode;
         try
         {
-            exitCode = await rootCommand.Parse(args, config).InvokeAsync();
+            exitCode = await rootCommand.Parse(args).InvokeAsync(invocationConfiguration);
         }
         catch (Exception)
         {
