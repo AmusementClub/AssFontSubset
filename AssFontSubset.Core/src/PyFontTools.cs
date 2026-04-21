@@ -270,6 +270,15 @@ public class PyFontTools(string pyftsubset, string ttx, ILogger? logger) : Subse
             // Perhaps it only works with OpenType font that don’t have CFF outlines
             startInfo.ArgumentList.Add("--no-prune-codepage-ranges");
         }
+
+        if (pyFtVersion > new Version("4.60.0"))
+        {
+            // https://github.com/fonttools/fonttools/releases/tag/4.60.1
+            // https://github.com/fonttools/fonttools/pull/3949
+            // fontTools 4.60.1 keeps BASE by default instead of dropping it
+            // Some fonts, e.g. DreamHanSans-W10, declare BASE v1.1 but contain v1.0-like data, which makes fontTools fail while reading BASE.VarStore.
+            startInfo.ArgumentList.Add("--drop-tables+=BASE");
+        }
         
         startInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
         return startInfo;
