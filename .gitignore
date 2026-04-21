@@ -267,3 +267,4 @@ __pycache__/
 test/
 */Properties/*
 /native
+**/*.csproj.lscache
