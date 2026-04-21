@@ -2,7 +2,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using AssFontSubset.Core;
@@ -23,6 +22,7 @@ namespace AssFontSubset.Avalonia.Views
         {
             InitializeComponent();
             DataContext = new MainWindowViewModel();
+            AddHandler(DragDrop.DragOverEvent, DragOver_Files);
             AddHandler(DragDrop.DropEvent, Drop_Files);
         }
 
@@ -86,19 +86,30 @@ namespace AssFontSubset.Avalonia.Views
             await box.ShowWindowDialogAsync(this);
         }
         
-        private void Drop_Files(object? sender, DragEventArgs e)
+        private void DragOver_Files(object? sender, DragEventArgs e)
         {
-            var dragData = (IEnumerable<IStorageItem>?)e.Data.Get(DataFormats.Files);
-            if (dragData == null) return;
-            var files = dragData.ToArray();
+            var files = e.DataTransfer.TryGetFiles();
+            e.DragEffects = files is { Length: > 0 } ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private async void Drop_Files(object? sender, DragEventArgs e)
+        {
+            var files = e.DataTransfer.TryGetFiles();
+            if (files is not { Length: > 0 }) return;
             
-            var validFiles = files.Where(f => Path.GetExtension(f.Name) == ".ass").ToArray();
+            var validFiles = files
+                .Where(f => string.Equals(Path.GetExtension(f.Name), ".ass", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
             if (validFiles.Length == 0) return;
 
             AssFileList.ItemsSource = validFiles.Select(f => f.Path.LocalPath).Order().ToList();
-            var dir = validFiles[0].GetParentAsync().Result;
-            FontFolder.Text = Path.Combine(dir!.Path.LocalPath, "fonts");
-            OutputFolder.Text = Path.Combine(dir!.Path.LocalPath, "output");
+            var dir = await validFiles[0].GetParentAsync();
+            if (dir == null) return;
+
+            FontFolder.Text = Path.Combine(dir.Path.LocalPath, "fonts");
+            OutputFolder.Text = Path.Combine(dir.Path.LocalPath, "output");
+            e.Handled = true;
         }
     }
 }
