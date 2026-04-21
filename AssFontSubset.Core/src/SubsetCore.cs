@@ -236,9 +236,19 @@ public class SubsetCore(ILogger? logger = null)
         
         foreach (var style in ass.Styles.Collection)
         {
-            if (assFontNameMap.TryGetValue(style.Fontname, out var newFn))
+            if (style.Fontname.StartsWith('@'))
             {
-                style.Fontname = newFn;
+                if (assFontNameMap.TryGetValue(style.Fontname[1..], out var newFn))
+                {
+                    style.Fontname = '@' + newFn;
+                }
+            }
+            else
+            {
+                if (assFontNameMap.TryGetValue(style.Fontname, out var newFn))
+                {
+                    style.Fontname = newFn;
+                }
             }
         }
         

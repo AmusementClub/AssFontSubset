@@ -60,7 +60,7 @@ jobs:
 
     - name: Setup Zig Compiler (target linux)
       if: matrix.config.target == 'linux-musl'
-      uses: mlugg/setup-zig@v1
+      uses: mlugg/setup-zig@v2.2.1
       with:
         version: "master"
 
