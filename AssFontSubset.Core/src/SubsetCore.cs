@@ -1,10 +1,10 @@
-﻿using System.Buffers;
-using Mobsub.SubtitleParse.AssTypes;
-using Mobsub.SubtitleParse;
+using System.Buffers;
+using System.Diagnostics;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Mobsub.SubtitleParse.AssText;
+using Mobsub.SubtitleParse.AssTypes;
 using ZLogger;
-using System.Diagnostics;
 
 namespace AssFontSubset.Core;
 
@@ -64,15 +64,14 @@ public class SubsetCore(ILogger? logger = null)
     private IEnumerable<IGrouping<string, FontInfo>> GetFontInfoFromFiles(string dir)
     {
         string[] supportFonts = [".ttf", ".otf", ".ttc", "otc"];
-        // HashSet<string> HasTrueBoldOrItalicRecord = [];
 
         logger?.ZLogInformation($"Start scan valid font files in {dir}");
         logger?.ZLogInformation($"Support font file extension: {string.Join(", ", supportFonts)}");
         _stopwatch.Start();
-        
+
         var dirInfo = new DirectoryInfo(dir);
         var fontInfos = FontParse.GetFontInfos(dirInfo);
-        
+
         _stopwatch.Stop();
         logger?.ZLogDebug($"Font file scanning completed, use {_stopwatch.ElapsedMilliseconds} ms");
         _stopwatch.Reset();
@@ -81,7 +80,7 @@ public class SubsetCore(ILogger? logger = null)
         {
             throw new Exception($"Maybe have duplicate fonts in fonts directory");
         }
-        
+
         return fontInfoGroup;
     }
 
@@ -122,10 +121,9 @@ public class SubsetCore(ILogger? logger = null)
 
         foreach (var assFile in assFiles)
         {
-            //logger?.ZLogInformation($"{assFile.FullName}");
             var assFileNew = Path.Combine(optDir, assFile.Name);
             var assFonts = AssFont.GetAssFonts(assFile.FullName, out var ass, logger);
-            
+
             foreach (var kv in assFonts)
             {
                 if (multiAssFonts.Count > 0 && multiAssFonts.TryGetValue(kv.Key, out var value))
@@ -155,7 +153,6 @@ public class SubsetCore(ILogger? logger = null)
         fontMap = [];
         List<AssFontInfo> matchedAssFontInfos = [];
 
-        // var fiGroups = fontInfos.GroupBy(fontInfo => fontInfo.FamilyNames[FontConstant.LanguageIdEnUs]);
         foreach (var fig in fontInfos)
         {
             foreach (var afi in assFonts.Keys)
@@ -163,7 +160,7 @@ public class SubsetCore(ILogger? logger = null)
                 if (matchedAssFontInfos.Contains(afi)) { continue; }
                 var _fontInfo = AssFont.GetMatchedFontInfo(afi, fig, logger);
                 if (_fontInfo == null) { continue; }
-                var fontInfo = (FontInfo) _fontInfo;
+                var fontInfo = (FontInfo)_fontInfo;
 
                 if (!fontMap.TryGetValue(fontInfo, out var _))
                 {
@@ -179,16 +176,14 @@ public class SubsetCore(ILogger? logger = null)
 
         if (matchedAssFontInfos.Count != assFonts.Keys.Count)
         {
-            var NotFound = assFonts.Keys.Except(matchedAssFontInfos).ToList();
-            throw new Exception($"Not found font file: {string.Join("、", NotFound.Select(x => x.ToString()))}");
+            var notFound = assFonts.Keys.Except(matchedAssFontInfos).ToList();
+            throw new Exception($"Not found font file: {string.Join("、", notFound.Select(x => x.ToString()))}");
         }
 
         logger?.ZLogDebug($"Start convert font file info to subset font info");
-        //List<SubsetFont> subsetFonts = [];
         Dictionary<string, List<SubsetFont>> subsetFonts = [];
         foreach (var kv in fontMap)
         {
-            // var runes = kv.Value.Count > 1 ? kv.Value.SelectMany(i => assFonts[i]).ToHashSet().ToList() : assFonts[kv.Value[0]];
             HashSet<Rune> horRunes = [];
             HashSet<Rune> vertRunes = [];
             foreach (var afi in kv.Value)
@@ -203,13 +198,12 @@ public class SubsetCore(ILogger? logger = null)
                 }
             }
 
-            //subsetFonts.Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, runes) { OriginalFamilyName = kv.Key.FamilyName });
-            var _famName = kv.Key.FamilyNames[FontConstant.LanguageIdEnUs];
-            if (!subsetFonts.TryGetValue(_famName, out var _))
+            var familyName = kv.Key.FamilyNames[FontConstant.LanguageIdEnUs];
+            if (!subsetFonts.TryGetValue(familyName, out var _))
             {
-                subsetFonts.Add(_famName, []);
+                subsetFonts.Add(familyName, []);
             }
-            subsetFonts[_famName].Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, horRunes, vertRunes));
+            subsetFonts[familyName].Add(new SubsetFont(new FileInfo(kv.Key.FileName), kv.Key.Index, horRunes, vertRunes));
         }
         logger?.ZLogDebug($"Convert completed");
 
@@ -221,7 +215,6 @@ public class SubsetCore(ILogger? logger = null)
 
     static void ChangeAssFontName(AssData ass, Dictionary<string, string> nameMap, Dictionary<FontInfo, List<AssFontInfo>> fontMap)
     {
-        // map ass font name and random name
         Dictionary<string, string> assFontNameMap = [];
         foreach (var (kv, kv2) in from kv in nameMap
                                   from kv2 in fontMap
@@ -233,14 +226,17 @@ public class SubsetCore(ILogger? logger = null)
                 assFontNameMap.TryAdd(afi.Name.StartsWith('@') ? afi.Name[1..] : afi.Name, kv.Value);
             }
         }
-        
-        foreach (var style in ass.Styles.Collection)
+
+        var styleChanged = false;
+        for (var i = 0; i < ass.Styles.Collection.Count; i++)
         {
+            var style = ass.Styles.Collection[i];
             if (style.Fontname.StartsWith('@'))
             {
                 if (assFontNameMap.TryGetValue(style.Fontname[1..], out var newFn))
                 {
                     style.Fontname = '@' + newFn;
+                    styleChanged = true;
                 }
             }
             else
@@ -248,54 +244,67 @@ public class SubsetCore(ILogger? logger = null)
                 if (assFontNameMap.TryGetValue(style.Fontname, out var newFn))
                 {
                     style.Fontname = newFn;
+                    styleChanged = true;
                 }
             }
+
+            ass.Styles.Collection[i] = style;
         }
-        
+
+        if (styleChanged)
+        {
+            ass.Styles.InvalidateStyleMap();
+        }
+
         var assFontNameMapSort = assFontNameMap.OrderByDescending(d => d.Key).ToDictionary();
 
-        var sb = new StringBuilder();
-        foreach (var evt in ass.Events.Collection)
+        if (ass.Events is not null)
         {
-            if (!evt.IsDialogue) { continue; }
-            var text = evt.Text.AsSpan();
-            if (text.IsEmpty) { continue; }
-            
-            if (evt.TextRanges.Length == 0)
+            var sb = new StringBuilder();
+            for (var i = 0; i < ass.Events.Collection.Count; i++)
             {
-                evt.UpdateTextRanges();
-            }
+                var evt = ass.Events.Collection[i];
+                if (!evt.IsDialogue) { continue; }
+                var text = evt.Text.AsSpan();
+                if (text.IsEmpty) { continue; }
 
-            if (evt.TextRanges.Length == 1)
-            {
-                continue;
-            }
-            
-            var lineChanged = false;
-            foreach (var range in evt.TextRanges)
-            {
-                var block = text[range];
-                Debug.WriteLine($"{range.Start}:{range.End}:{block}");
-                if (AssEvent.IsOverrideBlock(block))
+                if (evt.TextRanges.Length == 0)
                 {
-                    if (ReplaceFontName(block, assFontNameMapSort, sb))
+                    evt.UpdateTextRanges();
+                }
+
+                if (evt.TextRanges.Length == 1)
+                {
+                    continue;
+                }
+
+                var lineChanged = false;
+                foreach (var range in evt.TextRanges)
+                {
+                    var block = text[range];
+                    Debug.WriteLine($"{range.Start}:{range.End}:{block}");
+                    if (AssEvent.IsOverrideBlock(block))
                     {
-                        lineChanged = true;
+                        if (ReplaceFontName(block, assFontNameMapSort, sb))
+                        {
+                            lineChanged = true;
+                        }
                     }
+                    else
+                    {
+                        sb.Append(block);
+                    }
+                    Debug.WriteLine(sb.ToString());
                 }
-                else
+
+                if (lineChanged)
                 {
-                    sb.Append(block);
+                    evt.Text = sb.ToString();
+                    ass.Events.Collection[i] = evt;
                 }
-                Debug.WriteLine(sb.ToString());
-            }
 
-            if (lineChanged)
-            {
-                evt.Text = sb.ToString();
+                sb.Clear();
             }
-
-            sb.Clear();
         }
 
         List<string> subsetList = [];
@@ -309,16 +318,18 @@ public class SubsetCore(ILogger? logger = null)
 
     private static bool ReplaceFontName(ReadOnlySpan<char> block, Dictionary<string, string> nameMap, StringBuilder sb)
     {
+        const string fontNameTag = @"\fn";
+
         var changed = false;
         var start = 0;
-        var tagIndex = block.IndexOf($@"{AssConstants.BackSlash}{AssConstants.OverrideTags.FontName}");
+        var tagIndex = block.IndexOf(fontNameTag);
         while (tagIndex != -1)
         {
-            tagIndex += 3;
+            tagIndex += fontNameTag.Length;
             sb.Append(block.Slice(start, tagIndex));
             start += tagIndex;
-            
-            var sepValues = SearchValues.Create($"{AssConstants.BackSlash}{AssConstants.EndOvrBlock}");
+
+            var sepValues = SearchValues.Create(@"\}");
             var nextTag = block[start..].IndexOfAny(sepValues);
 
             var tagValue = nextTag == -1 ? block[start..] : block.Slice(start, nextTag);
@@ -344,14 +355,14 @@ public class SubsetCore(ILogger? logger = null)
             {
                 sb.Append(tagValue);
             }
-            
-            start += tagValue.Length;   
+
+            start += tagValue.Length;
             if (nextTag == -1)
             {
                 break;
             }
-            
-            tagIndex = block[start..].IndexOf($@"{AssConstants.BackSlash}{AssConstants.OverrideTags.FontName}");
+
+            tagIndex = block[start..].IndexOf(fontNameTag);
         }
 
         sb.Append(block[start..]);

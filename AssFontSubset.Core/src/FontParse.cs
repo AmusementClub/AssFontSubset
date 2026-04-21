@@ -1,10 +1,11 @@
-﻿using Mobsub.Helper.Font;
+using Mobsub.Font;
 
 namespace AssFontSubset.Core;
 
 public struct FontInfo
 {
     public Dictionary<int, string> FamilyNames;
+    public HashSet<string>? MatchNames;
     //public bool Regular;
     public bool Bold;
     public bool Italic;
@@ -67,16 +68,49 @@ public static class FontParse
     {
         var info = (FontFaceInfoOpenType)faceInfo;
         var fsSel = info.fsSelection;
-        var familyNamesNew = info.FamilyNamesGdi!; 
-        
+        var familyNamesNew = info.FamilyNamesGdi?.Count > 0
+            ? new Dictionary<int, string>(info.FamilyNamesGdi)
+            : info.FamilyNames?.Count > 0
+                ? new Dictionary<int, string>(info.FamilyNames)
+                : [];
+
+        if (familyNamesNew.Count == 0)
+        {
+            throw new InvalidDataException($"No family names found for font: {info.FileInfo?.FilePath}");
+        }
+
         if (!familyNamesNew.ContainsKey(FontConstant.LanguageIdEnUs))
         {
             familyNamesNew.Add(FontConstant.LanguageIdEnUs, familyNamesNew.FirstOrDefault().Value);
         }
-        
+
+        var matchNames = new HashSet<string>(StringComparer.Ordinal);
+
+        static void AddNames(HashSet<string> target, IEnumerable<string>? names)
+        {
+            if (names is null)
+            {
+                return;
+            }
+
+            foreach (var name in names)
+            {
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    target.Add(name);
+                }
+            }
+        }
+
+        AddNames(matchNames, familyNamesNew.Values);
+        AddNames(matchNames, info.FamilyNames?.Values);
+        AddNames(matchNames, info.FullNames?.Values);
+        AddNames(matchNames, string.IsNullOrWhiteSpace(info.PostScriptName) ? null : [info.PostScriptName]);
+
         return new FontInfo
         {
             FamilyNames = familyNamesNew,
+            MatchNames = matchNames,
             //Regular = ((fsSel & 0b_0100_0000) >> 6) == 1,   // bit 6
             Bold = ((fsSel & 0b_0010_0000) >> 5) == 1, // bit 5
             Italic = (fsSel & 0b_1) == 1, // bit 0

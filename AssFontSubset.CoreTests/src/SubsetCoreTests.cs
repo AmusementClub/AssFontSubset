@@ -1,4 +1,4 @@
-using System.Linq;
+using Mobsub.SubtitleParse.AssText;
 using System.Reflection;
 using System.Text;
 using Mobsub.SubtitleParse.AssTypes;
@@ -45,8 +45,8 @@ public class SubsetCoreTests
             {
                 [fontInfo] =
                 [
-                    new AssFontInfo { Name = "Example Font", Weight = 0, Italic = false },
-                    new AssFontInfo { Name = "@Example Font", Weight = 0, Italic = false },
+                    CreateAssFontInfo("Example Font", 0, false),
+                    CreateAssFontInfo("@Example Font", 0, false),
                 ]
             };
 
@@ -59,8 +59,8 @@ public class SubsetCoreTests
 
             Assert.AreEqual("SUBSET123", ass.Styles.Collection.Single(x => x.Name == "Default").Fontname);
             Assert.AreEqual("@SUBSET123", ass.Styles.Collection.Single(x => x.Name == "Vertical").Fontname);
-            Assert.AreEqual(@"{\fnSUBSET123}hello", ass.Events.Collection[0].Text);
-            Assert.AreEqual(@"{\fn@SUBSET123}world", ass.Events.Collection[1].Text);
+            Assert.AreEqual(@"{\fnSUBSET123}hello", ass.Events!.Collection[0].Text);
+            Assert.AreEqual(@"{\fn@SUBSET123}world", ass.Events!.Collection[1].Text);
             CollectionAssert.Contains(ass.ScriptInfo.Comment, "Font Subset: SUBSET123 - Example Font");
         }
         finally
@@ -84,5 +84,10 @@ public class SubsetCoreTests
         var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.ass");
         File.WriteAllText(path, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
         return path;
+    }
+
+    private static AssFontInfo CreateAssFontInfo(string name, int weight, bool italic, int encoding = 1)
+    {
+        return new($"{name},{weight},{(italic ? 1 : 0)},{encoding}");
     }
 }

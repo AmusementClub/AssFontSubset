@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Mobsub.Helper" Version="0.0.1" />
-    <PackageReference Include="Mobsub.SubtitleParse" Version="0.4.4-beta3" />
+    <PackageReference Include="Mobsub.Font" Version="0.0.1" />
+    <PackageReference Include="Mobsub.SubtitleParse" Version="0.5.0" />
   </ItemGroup>
 
   <ItemGroup>
