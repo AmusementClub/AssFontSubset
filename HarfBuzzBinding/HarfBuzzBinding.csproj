@@ -37,7 +37,7 @@
     </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="MIR.NativeLib.Harfbuzz.$(NativeLibraryType).$(PackageSuffix)" Version="10.1.0.0" />
+        <PackageReference Include="MIR.NativeLib.Harfbuzz.$(NativeLibraryType).$(PackageSuffix)" Version="11.4.5" />
     </ItemGroup>
 
 </Project>
