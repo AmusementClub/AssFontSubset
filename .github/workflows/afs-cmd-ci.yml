@@ -42,12 +42,12 @@ jobs:
     steps:
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: ${{ matrix.dotnet_version }}
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Test
       if: matrix.config.target != 'osx'
@@ -82,7 +82,7 @@ jobs:
           echo "VERSION=$ver_short" >> $GITHUB_ENV
 
     - name: Upload exe files
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: AssFontSubset.Console_g${{ env.VERSION }}_${{ env.identifier }}
         path: |
